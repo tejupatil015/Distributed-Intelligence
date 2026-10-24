@@ -1,194 +1,387 @@
-import type { Category } from "../data/categories";
+import { useEffect, useState } from "react";
 import "../utils/Dashboard.css";
 
+const API = "http://127.0.0.1:5000";
 
-const stats = [
-  { label: "Active Nodes", value: "2,486", change: "+18.6%", icon: "◈" },
-  { label: "Intelligence Flow", value: "84.2K", change: "+12.4%", icon: "⌁" },
-  { label: "System Efficiency", value: "98.8%", change: "+4.2%", icon: "◎" },
-  { label: "Live Operations", value: "1,204", change: "LIVE", icon: "↗" },
-];
+const formatNumber = (value) =>
+  Number(value ?? 0).toLocaleString("en-IN");
 
-const activity = [
-  { name: "Node Synchronization", detail: "Distributed network", time: "Just now", status: "Completed" },
-  { name: "Intelligence Processing", detail: "Data analysis engine", time: "2 min ago", status: "Processing" },
-  { name: "Network Optimization", detail: "Resource allocation", time: "5 min ago", status: "Completed" },
-  { name: "Data Distribution", detail: "Multi-node transfer", time: "8 min ago", status: "Processing" },
-];
+export default function DistributionDashboard() {
+  const [dashboard, setDashboard] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-const bars = [32, 48, 38, 67, 44, 78, 56, 88, 61, 72, 49, 96, 68, 82, 59, 90, 73, 100, 65, 84];
+  async function loadDashboard() {
+    try {
+      setError("");
 
-export function Dashboard({ cat }: { cat: Category }) {
+      const [dashboardResponse, analyticsResponse, locationResponse] =
+        await Promise.all([
+          fetch(`${API}/api/dashboard`),
+          fetch(`${API}/api/inventory-analytics`),
+          fetch(`${API}/api/location-stock`),
+        ]);
+
+      if (
+        !dashboardResponse.ok ||
+        !analyticsResponse.ok ||
+        !locationResponse.ok
+      ) {
+        throw new Error("Unable to load dashboard data from the backend.");
+      }
+
+      const [dashboardResult, analyticsResult, locationResult] =
+        await Promise.all([
+          dashboardResponse.json(),
+          analyticsResponse.json(),
+          locationResponse.json(),
+        ]);
+
+      if (
+        !dashboardResult.success ||
+        !analyticsResult.success ||
+        !locationResult.success
+      ) {
+        throw new Error("The backend returned an unsuccessful response.");
+      }
+
+      setDashboard(dashboardResult.data);
+      setAnalytics(analyticsResult.data);
+      setLocations(locationResult.data);
+    } catch (err) {
+      setError(
+        `${err.message} Check that the backend and MySQL are running.`
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard();
+
+    const interval = setInterval(loadDashboard, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const cards = dashboard
+    ? [
+        {
+          label: "Total Locations",
+          value: dashboard.total_locations,
+          icon: "⌖",
+          color: "violet",
+        },
+        {
+          label: "Total Products",
+          value: dashboard.total_products,
+          icon: "▦",
+          color: "blue",
+        },
+        {
+          label: "Distributed Stock",
+          value: dashboard.total_distributed_stock,
+          icon: "▤",
+          color: "teal",
+        },
+        {
+          label: "Pending Transfers",
+          value: dashboard.pending_transfers,
+          icon: "↗",
+          color: "orange",
+        },
+        {
+          label: "Completed Transfers",
+          value: dashboard.completed_transfers,
+          icon: "✓",
+          color: "green",
+        },
+      ]
+    : [];
+
+  const maxStock = Math.max(
+    1,
+    ...locations.map((location) => Number(location.total_stock))
+  );
+
+  if (loading) {
+    return (
+      <div className="di-loading">
+        <div className="di-spinner" />
+        <p>Connecting to your distribution network...</p>
+      </div>
+    );
+  }
+
   return (
-    <section className="di-dashboard">
-      <div className="di-dashboard__glow di-dashboard__glow--one" />
-      <div className="di-dashboard__glow di-dashboard__glow--two" />
+    <main className="di-dashboard">
+      <aside className="di-sidebar">
+        <a className="di-brand" href="#overview">
+          <span className="di-brand-icon">D</span>
+          <span>
+            Distribution<span className="di-brand-light">IQ</span>
+          </span>
+        </a>
 
-      <div className="di-dashboard__inner">
-        <div className="di-topline">
-          <span><i /> DISTRIBUTED INTELLIGENCE SYSTEM</span>
-          <span className="di-live"><b /> ALL SYSTEMS ONLINE</span>
+        <p className="di-nav-label">WORKSPACE</p>
+
+        <a className="di-nav-item di-nav-active" href="#overview">
+          <span>▦</span> Overview
+        </a>
+        <a className="di-nav-item" href="#inventory">
+          <span>▤</span> Inventory
+        </a>
+        <a className="di-nav-item" href="#locations">
+          <span>⌖</span> Locations
+        </a>
+        <a className="di-nav-item" href="#transfers">
+          <span>⇄</span> Transfers
+        </a>
+
+        <div className="di-sidebar-bottom">
+          <div className="di-status-dot" />
+          <div>
+            <strong>System status</strong>
+            <span>Live dashboard</span>
+          </div>
         </div>
+      </aside>
 
-        <header className="di-hero">
-          <div className="di-hero__content">
-            <span className="di-kicker">THE INTELLIGENCE NETWORK / 01</span>
-            <h2>
-              Think beyond
-              <br />
-              <span>the center.</span>
-            </h2>
-            <p>
-              {cat.blurb || "A connected intelligence ecosystem where distributed nodes collaborate, process information, and turn data into decisions."}
-            </p>
-
-            <div className="di-hero__actions">
-              <a href="#di-analytics">Explore Analytics <span>↗</span></a>
-              <span className="di-hero__caption">ONE NETWORK. MANY INTELLIGENCES.</span>
-            </div>
+      <section className="di-main" id="overview">
+        <header className="di-topbar">
+          <div>
+            <span className="di-breadcrumb">Workspace / Overview</span>
+            <h1>Distribution Intelligence</h1>
+            <p>Monitor your stock, locations and distribution activity.</p>
           </div>
 
-          <div className="di-orbit" aria-label="Illustration of a distributed intelligence network">
-            <div className="di-orbit__ring di-orbit__ring--outer" />
-            <div className="di-orbit__ring di-orbit__ring--middle" />
-            <div className="di-orbit__ring di-orbit__ring--inner" />
-
-            <div className="di-orbit__core">
-              <span>DI</span>
-              <small>CORE</small>
-            </div>
-
-            <span className="di-orbit__node di-orbit__node--one">AI</span>
-            <span className="di-orbit__node di-orbit__node--two">01</span>
-            <span className="di-orbit__node di-orbit__node--three">DB</span>
-            <span className="di-orbit__node di-orbit__node--four">ML</span>
-            <span className="di-orbit__node di-orbit__node--five">↗</span>
-            <span className="di-orbit__node di-orbit__node--six">∞</span>
-
-            <div className="di-orbit__label di-orbit__label--top">DECENTRALIZED</div>
-            <div className="di-orbit__label di-orbit__label--bottom">CONNECTED INTELLIGENCE</div>
-          </div>
+          <button className="di-refresh" onClick={loadDashboard}>
+            ↻ <span>Refresh data</span>
+          </button>
         </header>
 
-        <div className="di-section-heading" id="di-analytics">
-          <div>
-            <span className="di-kicker">01 / LIVE OVERVIEW</span>
-            <h3>System <span>at a glance.</span></h3>
+        {error && (
+          <div className="di-error">
+            <strong>Connection issue</strong>
+            <p>{error}</p>
+            <button onClick={loadDashboard}>Try again</button>
           </div>
-          <span className="di-updated">● Updated in real time*</span>
+        )}
+
+        <div className="di-section-heading">
+          <div>
+            <h2>Network overview</h2>
+            <p>Your current distribution snapshot</p>
+          </div>
+          <span className="di-live"><span /> LIVE DATA</span>
         </div>
 
-        <div className="di-stat-grid">
-          {stats.map((stat, index) => (
-            <article className="di-stat" key={stat.label} style={{ animationDelay: `${index * 100}ms` }}>
-              <div className="di-stat__top">
-                <span>{stat.label}</span>
-                <span className="di-stat__icon">{stat.icon}</span>
+        <section className="di-kpi-grid">
+          {cards.map((card, index) => (
+            <article
+              className="di-kpi-card"
+              key={card.label}
+              style={{ animationDelay: `${index * 70}ms` }}
+            >
+              <div className={`di-kpi-icon ${card.color}`}>
+                {card.icon}
               </div>
-              <div className="di-stat__value">{stat.value}</div>
-              <div className="di-stat__bottom">
-                <span className="di-stat__change">↗ {stat.change}</span>
-                <span className="di-stat__period">vs last period</span>
-              </div>
-              <div className="di-stat__line" />
+              <p>{card.label}</p>
+              <strong>{formatNumber(card.value)}</strong>
+              <span className="di-kpi-caption">From your database</span>
             </article>
           ))}
-        </div>
+        </section>
 
-        <div className="di-main-grid">
-          <article className="di-panel di-activity">
-            <div className="di-panel__heading">
+        <section className="di-content-grid" id="inventory">
+          <article className="di-panel di-inventory-panel">
+            <div className="di-panel-header">
               <div>
-                <span className="di-kicker">02 / NETWORK PERFORMANCE</span>
-                <h3>Intelligence flow</h3>
+                <h2>Inventory analytics</h2>
+                <p>Stock quantities across your network</p>
               </div>
-              <span className="di-panel__badge">24H</span>
+              <span className="di-panel-icon">▥</span>
             </div>
 
-            <div className="di-chart-summary">
-              <strong>84,290 <span>units</span></strong>
-              <span className="di-chart-positive">↗ 12.8%</span>
+            <div className="di-total-inventory">
+              <div>
+                <span>Total inventory</span>
+                <strong>
+                  {formatNumber(analytics?.totalInventory)}
+                </strong>
+                <small>Units recorded in location inventory</small>
+              </div>
+              <div className="di-inventory-symbol">▤</div>
             </div>
 
-            <div className="di-chart">
-              {bars.map((height, index) => (
-                <div className="di-chart__column" key={index}>
-                  <span style={{ height: `${height}%`, animationDelay: `${index * 35}ms` }} />
+            <div className="di-category-list">
+              <div className="di-category-row">
+                <div className="di-category-title">
+                  <span className="di-legend-dot total" />
+                  <span>Total Inventory</span>
                 </div>
-              ))}
-            </div>
-
-            <div className="di-chart__labels">
-              <span>00:00</span>
-              <span>06:00</span>
-              <span>12:00</span>
-              <span>18:00</span>
-              <span>NOW</span>
-            </div>
-          </article>
-
-          <article className="di-panel di-network">
-            <div className="di-panel__heading">
-              <div>
-                <span className="di-kicker">03 / CONNECTIVITY</span>
-                <h3>Network health</h3>
+                <strong>{formatNumber(analytics?.totalInventory)}</strong>
               </div>
-              <span className="di-network__percent">98.8%</span>
+
+              <div className="di-category-track">
+                <div
+                  className="di-category-fill total-fill"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div className="di-category-row">
+                <div className="di-category-title">
+                  <span className="di-legend-dot block" />
+                  <span>Block Inventory</span>
+                </div>
+                <strong>
+                  {analytics?.blockInventory == null
+                    ? "Not configured"
+                    : formatNumber(analytics.blockInventory)}
+                </strong>
+              </div>
+
+              <div className="di-category-track">
+                <div
+                  className="di-category-fill block-fill"
+                  style={{
+                    width:
+                      analytics?.blockInventory == null
+                        ? "0%"
+                        : `${
+                            Math.min(
+                              100,
+                              (analytics.blockInventory /
+                                Math.max(1, analytics.totalInventory)) *
+                                100
+                            )
+                          }%`,
+                  }}
+                />
+              </div>
+
+              <div className="di-category-row">
+                <div className="di-category-title">
+                  <span className="di-legend-dot manufacturing" />
+                  <span>Inventory in Manufacturing</span>
+                </div>
+                <strong>
+                  {analytics?.manufacturingInventory == null
+                    ? "Not configured"
+                    : formatNumber(analytics.manufacturingInventory)}
+                </strong>
+              </div>
+
+              <div className="di-category-track">
+                <div
+                  className="di-category-fill manufacturing-fill"
+                  style={{
+                    width:
+                      analytics?.manufacturingInventory == null
+                        ? "0%"
+                        : `${
+                            Math.min(
+                              100,
+                              (analytics.manufacturingInventory /
+                                Math.max(1, analytics.totalInventory)) *
+                                100
+                            )
+                          }%`,
+                  }}
+                />
+              </div>
             </div>
 
-            <div className="di-network__visual">
-              <div className="di-network__circle di-network__circle--outer" />
-              <div className="di-network__circle di-network__circle--inner" />
-              <div className="di-network__center">DI<span>CORE</span></div>
-              <i className="di-network__point di-network__point--a" />
-              <i className="di-network__point di-network__point--b" />
-              <i className="di-network__point di-network__point--c" />
-              <i className="di-network__point di-network__point--d" />
-              <i className="di-network__point di-network__point--e" />
-            </div>
-
-            <div className="di-network__legend">
-              <span><i /> Connected nodes</span>
-              <strong>2,486 / 2,500</strong>
-            </div>
-            <div className="di-progress"><span /></div>
-            <p className="di-network__foot">Distributed network stability is optimal.</p>
+            {(analytics?.blockInventory == null ||
+              analytics?.manufacturingInventory == null) && (
+              <p className="di-note">
+                Block and manufacturing values will appear when their
+                categories are mapped to your database.
+              </p>
+            )}
           </article>
-        </div>
 
-        <article className="di-panel di-operations">
-          <div className="di-panel__heading">
+          <article className="di-panel" id="locations">
+            <div className="di-panel-header">
+              <div>
+                <h2>Location-wise stock</h2>
+                <p>Inventory distribution by city</p>
+              </div>
+              <span className="di-panel-icon">⌖</span>
+            </div>
+
+            {locations.length === 0 ? (
+              <div className="di-empty">No location stock found.</div>
+            ) : (
+              <div className="di-location-list">
+                {locations.map((location, index) => (
+                  <div className="di-location-item" key={location.location_id}>
+                    <div className="di-location-meta">
+                      <div className="di-location-name">
+                        <span className={`di-location-number number-${index % 4}`}>
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span>{location.location_name}</span>
+                      </div>
+                      <strong>{formatNumber(location.total_stock)}</strong>
+                    </div>
+                    <div className="di-location-track">
+                      <div
+                        className={`di-location-fill fill-${index % 4}`}
+                        style={{
+                          width: `${
+                            (Number(location.total_stock) / maxStock) * 100
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="di-location-footer">
+              <span>Locations connected</span>
+              <strong>{locations.length}</strong>
+            </div>
+          </article>
+        </section>
+
+        <section className="di-panel di-transfer-panel" id="transfers">
+          <div className="di-panel-header">
             <div>
-              <span className="di-kicker">04 / ACTIVITY STREAM</span>
-              <h3>Recent operations</h3>
+              <h2>Transfer activity</h2>
+              <p>Current status of stock movements</p>
             </div>
-            <a href="#di-analytics">VIEW ALL ↗</a>
+            <span className="di-panel-icon">⇄</span>
           </div>
 
-          <div className="di-table">
-            {activity.map((item, index) => (
-              <div className="di-table__row" key={item.name}>
-                <span className="di-table__number">0{index + 1}</span>
-                <div className="di-table__name">
-                  <strong>{item.name}</strong>
-                  <span>{item.detail}</span>
-                </div>
-                <span className={`di-table__status ${item.status === "Processing" ? "is-processing" : ""}`}>
-                  <i /> {item.status}
-                </span>
-                <span className="di-table__time">{item.time}</span>
-                <span className="di-table__arrow">↗</span>
+          <div className="di-transfer-grid">
+            <div className="di-transfer-item">
+              <span className="di-transfer-icon pending-icon">◷</span>
+              <div>
+                <span>Pending transfers</span>
+                <strong>{formatNumber(dashboard?.pending_transfers)}</strong>
               </div>
-            ))}
+            </div>
+            <div className="di-transfer-item">
+              <span className="di-transfer-icon completed-icon">✓</span>
+              <div>
+                <span>Completed transfers</span>
+                <strong>{formatNumber(dashboard?.completed_transfers)}</strong>
+              </div>
+            </div>
           </div>
-        </article>
+        </section>
 
-        <footer className="di-dashboard__footer">
-          <span>DI<span className="di-footer-dot">.</span> DISTRIBUTED INTELLIGENCE</span>
-          <span>CONNECTING DATA. AMPLIFYING INTELLIGENCE.</span>
-          <span>CONCEPT DASHBOARD · DEMO DATA</span>
+        <footer className="di-footer">
+          <span>DistributionIQ · Inventory intelligence</span>
+          <span>Data refreshes every 30 seconds</span>
         </footer>
-      </div>
-    </section>
+      </section>
+    </main>
   );
 }

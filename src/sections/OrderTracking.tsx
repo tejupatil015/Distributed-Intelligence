@@ -1,635 +1,812 @@
-
-import { useState } from "react";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
 import "../utils/OrderTracking.css";
 
+const ORDER_WEBHOOK_URL =
+  "https://dheeraj-11.app.n8n.cloud/webhook/fmcg-order";
 
-type OrderStatus =
-  | "Order Placed"
-  | "Confirmed"
-  | "Processing"
-  | "Dispatched"
-  | "Delivered";
+const SHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqbbS4F4muN87mveSo2r3069O-dz-Kfzf_9KTat7w1sA2z148aTjmcQLOYp4ALPyGfnnkZpo0JxGE6/pub?output=csv";
 
-type RetailOrder = {
-  retailerName: string;
-  businessName: string;
-  address: string;
-  gst: string;
-  contact: string;
-  requirement: string;
-  quantity: number;
-  orderId: string;
-  total: number;
-  paid: number;
-  expectedDelivery: string;
-  status: OrderStatus;
-  notes: string;
+const LOCAL_STORAGE_KEY = "di_order_history";
+
+type Product = {
+  id: string;
+  name: string;
+  price: number;
 };
 
-const steps: OrderStatus[] = [
-  "Order Placed",
-  "Confirmed",
-  "Processing",
-  "Dispatched",
-  "Delivered",
+type OrderForm = {
+  customer_name: string;
+  customer_email: string;
+  phone: string;
+  address: string;
+};
+
+type OrderRecord = {
+  order_id: string;
+  customer_name: string;
+  customer_email: string;
+  phone: string;
+  address: string;
+  product_name: string;
+  product_id: string;
+  quantity: number;
+  grand_total: number;
+  date: string;
+  status: string;
+  source?: string;
+  [key: string]: string | number | undefined;
+};
+
+/*
+  Replace the product names/prices below with your actual product catalogue.
+  Keep the IDs consistent with the products used in your n8n workflow.
+*/
+const PRODUCTS: Product[] = [
+  { id: "P001", name: "Product P001", price: 10 },
+  { id: "P002", name: "Product P002", price: 60 },
 ];
 
-const initialOrder: RetailOrder = {
-  retailerName: "Rahul Patil",
-  businessName: "Shree Ganesh Retail Store",
-  address: "Market Road, Kolhapur, Maharashtra",
-  gst: "27ABCDE1234F1Z5",
-  contact: "9876543210",
-  requirement: "Rice bags, cooking oil, sugar and pulses",
-  quantity: 120,
-  orderId: "DI-2026-001",
-  total: 85000,
-  paid: 50000,
-  expectedDelivery: "28 Oct 2026",
-  status: "Dispatched",
-  notes: "Deliver during business hours. Call before arrival.",
+const EMPTY_FORM: OrderForm = {
+  customer_name: "",
+  customer_email: "",
+  phone: "",
+  address: "",
 };
 
-const money = (amount: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
+function normalizeKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
 
-export function OrderTracking() {
-  const [order, setOrder] = useState<RetailOrder>(initialOrder);
-  const [showForm, setShowForm] = useState(false);
-  const [trackingId, setTrackingId] = useState(initialOrder.orderId);
-  const [message, setMessage] = useState("");
+function parseCSV(csv: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let insideQuotes = false;
 
-  const [form, setForm] = useState({
-    retailerName: "",
-    businessName: "",
-    address: "",
-    gst: "",
-    contact: "",
-    requirement: "",
-    quantity: "1",
-    total: "",
-    paid: "",
-    notes: "",
-  });
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+    const next = csv[i + 1];
 
-  const due = Math.max(0, order.total - order.paid);
-  const progress = (steps.indexOf(order.status) / (steps.length - 1)) * 100;
+    if (char === '"' && insideQuotes && next === '"') {
+      cell += '"';
+      i++;
+    } else if (char === '"') {
+      insideQuotes = !insideQuotes;
+    } else if (char === "," && !insideQuotes) {
+      row.push(cell.trim());
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !insideQuotes) {
+      if (char === "\r" && next === "\n") i++;
 
-  const updateForm = (field: keyof typeof form, value: string) => {
-    setForm((previous) => ({ ...previous, [field]: value }));
-  };
+      row.push(cell.trim());
 
-  const submitOrder = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+      if (row.some((value) => value !== "")) {
+        rows.push(row);
+      }
 
-    const total = Number(form.total);
-    const paid = Number(form.paid || 0);
-    const quantity = Number(form.quantity);
-
-    if (paid > total) {
-      setMessage("Paid amount cannot exceed the total order amount.");
-      return;
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
     }
+  }
 
-    if (!/^\d{10}$/.test(form.contact)) {
-      setMessage("Enter a valid 10-digit contact number.");
-      return;
-    }
+  row.push(cell.trim());
 
-    if (form.gst && !/^[0-9A-Z]{15}$/i.test(form.gst)) {
-      setMessage("GST number must contain 15 characters.");
-      return;
-    }
+  if (row.some((value) => value !== "")) {
+    rows.push(row);
+  }
 
-    if (
-      !Number.isFinite(total) ||
-      !Number.isFinite(paid) ||
-      !Number.isFinite(quantity) ||
-      total <= 0 ||
-      quantity <= 0 ||
-      paid < 0
-    ) {
-      setMessage("Enter valid order amount, paid amount and quantity.");
-      return;
-    }
+  return rows;
+}
 
-    const newId = `DI-${Date.now().toString().slice(-8)}`;
+function csvToObjects(csv: string): Record<string, string>[] {
+  const rows = parseCSV(csv);
 
-    setOrder({
-      ...form,
-      quantity,
-      total,
-      paid,
-      orderId: newId,
-      status: "Order Placed",
-      expectedDelivery: "Awaiting confirmation",
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((header) => header.replace(/^\uFEFF/, "").trim());
+
+  return rows.slice(1).map((values) => {
+    const object: Record<string, string> = {};
+
+    headers.forEach((header, index) => {
+      object[header] = values[index] ?? "";
     });
 
-    setTrackingId(newId);
-    setMessage("New order added to this demo.");
-    setShowForm(false);
+    return object;
+  });
+}
+
+function readField(
+  row: Record<string, string>,
+  candidates: string[]
+): string {
+  const normalizedCandidates = candidates.map(normalizeKey);
+
+  const matchingKey = Object.keys(row).find((key) =>
+    normalizedCandidates.includes(normalizeKey(key))
+  );
+
+  return matchingKey ? String(row[matchingKey] ?? "").trim() : "";
+}
+
+function toNumber(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+
+  const cleaned = String(value ?? "").replace(/[₹,\s]/g, "");
+  const parsed = Number(cleaned);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function parseDate(value: string): number {
+  if (!value) return 0;
+
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function formatDate(value: string): string {
+  if (!value) return "—";
+
+  const timestamp = parseDate(value);
+
+  if (!timestamp) return value;
+
+  return new Date(timestamp).toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function makeOrderId(): string {
+  return `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+}
+
+function mapSheetRow(
+  row: Record<string, string>,
+  index: number
+): OrderRecord {
+  const orderId = readField(row, [
+    "order_id",
+    "orderId",
+    "order id",
+    "id",
+    "order_number",
+  ]);
+
+  const customerName = readField(row, [
+    "customer_name",
+    "customer",
+    "customer name",
+    "name",
+    "retailer_name",
+  ]);
+
+  const productName = readField(row, [
+    "product_name",
+    "product",
+    "product name",
+    "item_name",
+    "item",
+  ]);
+
+  const productId = readField(row, [
+    "product_id",
+    "product id",
+    "productId",
+    "item_id",
+  ]);
+
+  const quantity = toNumber(
+    readField(row, ["quantity", "qty", "order_quantity", "demand_quantity"])
+  );
+
+  const total = toNumber(
+    readField(row, [
+      "grand_total",
+      "total_amount",
+      "total",
+      "order_total",
+      "amount",
+      "revenue",
+    ])
+  );
+
+  const date = readField(row, [
+    "timestamp",
+    "created_at",
+    "createdAt",
+    "order_date",
+    "order_date_time",
+    "date",
+    "datetime",
+  ]);
+
+  const status =
+    readField(row, ["status", "order_status", "orderStatus"]) || "Received";
+
+  return {
+    ...row,
+    order_id: orderId || `SHEET-${index + 1}`,
+    customer_name: customerName || "Customer",
+    customer_email: readField(row, ["customer_email", "email"]),
+    phone: readField(row, ["phone", "mobile", "contact"]),
+    address: readField(row, ["address", "delivery_address"]),
+    product_name: productName || productId || "—",
+    product_id: productId,
+    quantity,
+    grand_total: total,
+    date,
+    status,
+    source: "sheet",
+  };
+}
+
+function getSavedOrders(): OrderRecord[] {
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+
+    if (!saved) return [];
+
+    const parsed = JSON.parse(saved);
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveOrders(orders: OrderRecord[]) {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(orders));
+  } catch (error) {
+    console.error("Could not save orders locally:", error);
+  }
+}
+
+function deduplicateOrders(orders: OrderRecord[]): OrderRecord[] {
+  const seen = new Set<string>();
+
+  return orders.filter((order, index) => {
+    const id = String(order.order_id || "").trim();
+
+    // Do not collapse different sheet line items when their IDs are missing.
+    const key = id ? `${id}-${order.product_id}-${order.product_name}` : `row-${index}`;
+
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+}
+
+export default function OrderTracking() {
+  const [form, setForm] = useState<OrderForm>(EMPTY_FORM);
+  const [selectedProductId, setSelectedProductId] = useState(PRODUCTS[0].id);
+  const [qty, setQty] = useState(1);
+
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState("");
+  const [search, setSearch] = useState("");
+
+  const selectedProduct =
+    PRODUCTS.find((product) => product.id === selectedProductId) ?? PRODUCTS[0];
+
+  const estimatedTotal = selectedProduct.price * qty;
+
+  const loadOrders = useCallback(async () => {
+    setFetching(true);
+    setError("");
+
+    try {
+      const response = await fetch(SHEET_CSV_URL, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google Sheet returned HTTP ${response.status}`);
+      }
+
+      const csv = await response.text();
+
+      if (
+        csv.trim().startsWith("<!DOCTYPE") ||
+        csv.trim().startsWith("<html")
+      ) {
+        throw new Error(
+          "The Sheet URL returned HTML instead of CSV. Check that the sheet is published to the web."
+        );
+      }
+
+      const rawRows = csvToObjects(csv);
+      const sheetOrders = rawRows.map(mapSheetRow);
+
+      // Keep recently submitted orders in the list even before the Sheet refreshes.
+      const localOrders = getSavedOrders();
+      const combined = deduplicateOrders([...localOrders, ...sheetOrders]);
+
+      combined.sort((a, b) => {
+        const aTime = parseDate(a.date);
+        const bTime = parseDate(b.date);
+
+        if (aTime && bTime) return bTime - aTime;
+        if (aTime) return -1;
+        if (bTime) return 1;
+
+        return 0;
+      });
+
+      setOrders(combined);
+      saveOrders(combined);
+    } catch (err) {
+      console.error("Order history fetch failed:", err);
+
+      // Still show locally saved orders when the Sheet cannot be fetched.
+      const localOrders = getSavedOrders();
+      setOrders(localOrders);
+
+      setError(
+        err instanceof Error
+          ? `${err.message} Showing locally saved orders if available.`
+          : "Could not load Google Sheet order history."
+      );
+    } finally {
+      setFetching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadOrders();
+
+    const interval = window.setInterval(() => {
+      void loadOrders();
+    }, 30000);
+
+    return () => window.clearInterval(interval);
+  }, [loadOrders]);
+
+  const handleFormChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
   };
 
-  const trackOrder = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
+    setResult("");
 
-    if (trackingId.trim().toUpperCase() === order.orderId.toUpperCase()) {
-      setMessage(`Order ${order.orderId} found.`);
-    } else {
-      setMessage("Order not found in this demo. Try the displayed Order ID.");
+    if (!form.customer_name.trim()) {
+      setError("Please enter the customer name.");
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      setError("Please enter the phone number.");
+      return;
+    }
+
+    if (!form.address.trim()) {
+      setError("Please enter the delivery address.");
+      return;
+    }
+
+    if (!Number.isInteger(qty) || qty < 1) {
+      setError("Quantity must be at least 1.");
+      return;
+    }
+
+    setLoading(true);
+
+    const orderId = makeOrderId();
+    const orderDate = new Date().toISOString();
+
+    const newOrder: OrderRecord = {
+      order_id: orderId,
+      customer_name: form.customer_name.trim(),
+      customer_email: form.customer_email.trim(),
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      product_name: selectedProduct.name,
+      product_id: selectedProduct.id,
+      quantity: qty,
+      grand_total: estimatedTotal,
+      date: orderDate,
+      status: "Submitted",
+      source: "local",
+    };
+
+    const payload = {
+      ...form,
+      order_id: orderId,
+      order_date: orderDate,
+      items: [
+        {
+          product_id: selectedProduct.id,
+          product_name: selectedProduct.name,
+          quantity: qty,
+          price: selectedProduct.price,
+          total: estimatedTotal,
+        },
+      ],
+      quantity: qty,
+      grand_total: estimatedTotal,
+      status: "Submitted",
+    };
+
+    try {
+      const response = await fetch(ORDER_WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        throw new Error(
+          response.status === 409
+            ? "This order was rejected as a duplicate. Please check the order workflow."
+            : `Order submission failed (HTTP ${response.status}). ${responseText}`
+        );
+      }
+
+      // Show the new order immediately, without waiting for the Sheet refresh.
+      setOrders((previous) => {
+        const updated = [newOrder, ...previous];
+        saveOrders(updated);
+        return updated;
+      });
+
+      setResult(
+        `Order submitted successfully! Your order reference is ${orderId}.`
+      );
+
+      setForm(EMPTY_FORM);
+      setQty(1);
+
+      // Refresh the Sheet after a short delay to pick up the newly appended row.
+      window.setTimeout(() => {
+        void loadOrders();
+      }, 2500);
+    } catch (err) {
+      console.error("Order submission failed:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not submit the order. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => {
+      const aTime = parseDate(a.date);
+      const bTime = parseDate(b.date);
+
+      if (aTime && bTime) return bTime - aTime;
+      if (aTime) return -1;
+      if (bTime) return 1;
+
+      return 0;
+    });
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    if (!term) return sortedOrders;
+
+    return sortedOrders.filter((order) =>
+      Object.values(order).some((value) =>
+        String(value ?? "").toLowerCase().includes(term)
+      )
+    );
+  }, [sortedOrders, search]);
+
+  const totalOrders = useMemo(() => {
+    const ids = new Set(
+      orders
+        .map((order) => order.order_id)
+        .filter((id) => id && !String(id).startsWith("SHEET-"))
+    );
+
+    return ids.size || orders.length;
+  }, [orders]);
+
+  const totalRevenue = useMemo(() => {
+    /*
+      This sums the total column on each row. If your Sheet repeats an order's
+      grand total on multiple product rows, group rows by order_id in this
+      calculation to avoid double-counting.
+    */
+    return orders.reduce((sum, order) => sum + toNumber(order.grand_total), 0);
+  }, [orders]);
+
+  const itemsSold = useMemo(() => {
+    return orders.reduce((sum, order) => sum + toNumber(order.quantity), 0);
+  }, [orders]);
+
+  const latestOrder = sortedOrders[0];
+
   return (
-    <section className="ot-section" id="order-tracking">
-      <div className="ot-container">
-        <div className="ot-heading">
+    <main className="order-section order-tracking-page">
+      <header className="order-heading">
+        <p className="order-eyebrow">DISTRIBUTED INTELLIGENCE</p>
+        <h1>Order Tracking</h1>
+        <p>Place a new order and track your recent orders in one place.</p>
+      </header>
+
+      {/* SUMMARY */}
+      <section className="order-tracking-stats">
+        <article className="tracking-stat-card">
+          <span>Total Orders</span>
+          <strong>{fetching ? "…" : totalOrders}</strong>
+        </article>
+
+        <article className="tracking-stat-card">
+          <span>Total Revenue</span>
+          <strong>{fetching ? "…" : formatMoney(totalRevenue)}</strong>
+        </article>
+
+        <article className="tracking-stat-card">
+          <span>Items Sold</span>
+          <strong>{fetching ? "…" : itemsSold}</strong>
+        </article>
+
+        <article className="tracking-stat-card">
+          <span>Latest Order</span>
+          <strong className="tracking-latest-date">
+            {latestOrder ? formatDate(latestOrder.date) : "No orders yet"}
+          </strong>
+        </article>
+      </section>
+
+      {/* LATEST ORDER */}
+      {latestOrder && (
+        <section className="tracking-panel tracking-latest-panel">
+          <div className="tracking-panel-heading">
+            <div>
+              <p className="order-eyebrow">MOST RECENT</p>
+              <h2>Latest Order</h2>
+            </div>
+            <span className="tracking-status">{latestOrder.status}</span>
+          </div>
+
+          <div className="tracking-latest-grid">
+            <div>
+              <span>Order ID</span>
+              <strong>{latestOrder.order_id}</strong>
+            </div>
+            <div>
+              <span>Customer</span>
+              <strong>{latestOrder.customer_name}</strong>
+            </div>
+            <div>
+              <span>Product</span>
+              <strong>{latestOrder.product_name}</strong>
+            </div>
+            <div>
+              <span>Quantity</span>
+              <strong>{latestOrder.quantity || "—"}</strong>
+            </div>
+            <div>
+              <span>Order Total</span>
+              <strong>{formatMoney(latestOrder.grand_total)}</strong>
+            </div>
+            <div>
+              <span>Date</span>
+              <strong>{formatDate(latestOrder.date)}</strong>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* PLACE ORDER FORM */}
+      <section className="tracking-panel">
+        <div className="tracking-panel-heading">
           <div>
-            <span className="ot-eyebrow">
-              <span className="ot-live-dot" />
-              DISTRIBUTED INTELLIGENCE / OPERATIONS
-            </span>
+            <p className="order-eyebrow">NEW REQUEST</p>
+            <h2>Place an Order</h2>
+          </div>
+        </div>
 
-            <h2>
-              Retail Order
-              <br />
-              <span>Intelligence.</span>
-            </h2>
+        <form className="tracking-form" onSubmit={handleSubmit}>
+          <label htmlFor="customer_name">Customer Name *</label>
+          <input
+            id="customer_name"
+            name="customer_name"
+            type="text"
+            placeholder="Enter customer name"
+            value={form.customer_name}
+            onChange={handleFormChange}
+            required
+          />
 
-            <p>
-              Every retailer, every payment, every delivery — connected in
-              one intelligent tracking space.
+          <label htmlFor="customer_email">Email</label>
+          <input
+            id="customer_email"
+            name="customer_email"
+            type="email"
+            placeholder="Enter email address"
+            value={form.customer_email}
+            onChange={handleFormChange}
+          />
+
+          <label htmlFor="phone">Phone Number *</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            placeholder="Enter phone number"
+            value={form.phone}
+            onChange={handleFormChange}
+            required
+          />
+
+          <label htmlFor="address">Delivery Address *</label>
+          <textarea
+            id="address"
+            name="address"
+            placeholder="Enter complete delivery address"
+            value={form.address}
+            onChange={handleFormChange}
+            rows={3}
+            required
+          />
+
+          <label htmlFor="product">Select Product *</label>
+          <select
+            id="product"
+            value={selectedProductId}
+            onChange={(event) => setSelectedProductId(event.target.value)}
+          >
+            {PRODUCTS.map((product) => (
+              <option key={product.id} value={product.id}>
+                {product.name} — {formatMoney(product.price)}
+              </option>
+            ))}
+          </select>
+
+          <label htmlFor="quantity">Quantity *</label>
+          <input
+            id="quantity"
+            type="number"
+            min={1}
+            step={1}
+            value={qty}
+            onChange={(event) => setQty(Math.max(1, Number(event.target.value) || 1))}
+            required
+          />
+
+          <div className="tracking-order-total">
+            <span>Estimated Total</span>
+            <strong>{formatMoney(estimatedTotal)}</strong>
+          </div>
+
+          {error && (
+            <p className="tracking-message tracking-message-error" role="alert">
+              {error}
             </p>
+          )}
+
+          {result && (
+            <p
+              className="tracking-message tracking-message-success"
+              role="status"
+            >
+              {result}
+            </p>
+          )}
+
+          <button type="submit" disabled={loading} className="tracking-submit">
+            {loading ? "Submitting Order..." : "Place Order"}
+          </button>
+        </form>
+      </section>
+
+      {/* ORDER HISTORY */}
+      <section className="tracking-panel">
+        <div className="tracking-panel-heading">
+          <div>
+            <p className="order-eyebrow">ORDER RECORDS</p>
+            <h2>Order History</h2>
           </div>
 
           <button
-            className="ot-primary-btn"
             type="button"
-            onClick={() => {
-              setShowForm(!showForm);
-              setMessage("");
-            }}
+            className="tracking-refresh"
+            onClick={() => void loadOrders()}
+            disabled={fetching}
           >
-            {showForm ? "Close Form" : "+ Create New Order"}
+            {fetching ? "Refreshing..." : "Refresh"}
           </button>
         </div>
 
-        <div className="ot-overview">
-          <div className="ot-overview-card">
-            <span className="ot-card-icon">↗</span>
-            <p>Current Order Value</p>
-            <h3>{money(order.total)}</h3>
-            <span className="ot-card-foot">Selected retailer</span>
-          </div>
+        <input
+          className="tracking-search"
+          type="search"
+          placeholder="Search order ID, customer, product, status..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
 
-          <div className="ot-overview-card">
-            <span className="ot-card-icon">₹</span>
-            <p>Payment Received</p>
-            <h3>{money(order.paid)}</h3>
-            <span className="ot-card-foot ot-positive">Amount paid</span>
-          </div>
-
-          <div className="ot-overview-card ot-due-card">
-            <span className="ot-card-icon">!</span>
-            <p>Outstanding Payment</p>
-            <h3>{money(due)}</h3>
-            <span className="ot-card-foot ot-warning">
-              {due > 0 ? "Payment pending" : "Fully paid"}
-            </span>
-          </div>
-
-          <div className="ot-overview-card">
-            <span className="ot-card-icon">▦</span>
-            <p>Items / Units</p>
-            <h3>{order.quantity}</h3>
-            <span className="ot-card-foot">Requested quantity</span>
-          </div>
-        </div>
-
-        {showForm && (
-          <form className="ot-form" onSubmit={submitOrder}>
-            <div className="ot-form-heading">
-              <div>
-                <span className="ot-eyebrow">RETAILER ONBOARDING</span>
-                <h3>Create a retail order</h3>
-              </div>
-              <span className="ot-form-badge">NEW ENTRY</span>
-            </div>
-
-            <div className="ot-form-grid">
-              <label>
-                Retailer / Owner Name *
-                <input
-                  required
-                  value={form.retailerName}
-                  onChange={(e) => updateForm("retailerName", e.target.value)}
-                  placeholder="Enter retailer name"
-                />
-              </label>
-
-              <label>
-                Business Name *
-                <input
-                  required
-                  value={form.businessName}
-                  onChange={(e) => updateForm("businessName", e.target.value)}
-                  placeholder="Retail shop name"
-                />
-              </label>
-
-              <label className="ot-full">
-                Business Address *
-                <input
-                  required
-                  value={form.address}
-                  onChange={(e) => updateForm("address", e.target.value)}
-                  placeholder="Street, city, state and PIN code"
-                />
-              </label>
-
-              <label>
-                GST Number
-                <input
-                  value={form.gst}
-                  onChange={(e) =>
-                    updateForm("gst", e.target.value.toUpperCase())
-                  }
-                  maxLength={15}
-                  placeholder="15-character GSTIN"
-                />
-              </label>
-
-              <label>
-                Contact Number *
-                <input
-                  required
-                  type="tel"
-                  maxLength={10}
-                  value={form.contact}
-                  onChange={(e) =>
-                    updateForm("contact", e.target.value.replace(/\D/g, ""))
-                  }
-                  placeholder="10-digit mobile number"
-                />
-              </label>
-
-              <label className="ot-full">
-                Product / Stock Requirement *
-                <textarea
-                  required
-                  value={form.requirement}
-                  onChange={(e) => updateForm("requirement", e.target.value)}
-                  placeholder="Products, sizes, brands or stock requirements..."
-                  rows={3}
-                />
-              </label>
-
-              <label>
-                Quantity / Units *
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  value={form.quantity}
-                  onChange={(e) => updateForm("quantity", e.target.value)}
-                />
-              </label>
-
-              <label>
-                Total Order Amount (₹) *
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  value={form.total}
-                  onChange={(e) => updateForm("total", e.target.value)}
-                  placeholder="e.g. 25000"
-                />
-              </label>
-
-              <label>
-                Amount Paid (₹)
-                <input
-                  type="number"
-                  min="0"
-                  value={form.paid}
-                  onChange={(e) => updateForm("paid", e.target.value)}
-                  placeholder="e.g. 10000"
-                />
-              </label>
-
-              <label className="ot-full">
-                Delivery / Order Notes
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => updateForm("notes", e.target.value)}
-                  placeholder="Delivery instructions, special requirements..."
-                  rows={2}
-                />
-              </label>
-            </div>
-
-            <button className="ot-primary-btn" type="submit">
-              Save Demo Order →
-            </button>
-
-            <p className="ot-form-note">
-              Demo only: this entry is stored in the current page state, not a
-              database.
-            </p>
-          </form>
-        )}
-
-        <div className="ot-main-grid">
-          <div className="ot-panel ot-business-panel">
-            <div className="ot-panel-heading">
-              <div>
-                <span className="ot-eyebrow">RETAILER PROFILE</span>
-                <h3>Business Information</h3>
-              </div>
-              <span className="ot-verified">● DEMO</span>
-            </div>
-
-            <div className="ot-business-identity">
-              <div className="ot-avatar">
-                {order.businessName.slice(0, 1).toUpperCase()}
-              </div>
-              <div>
-                <h4>{order.businessName}</h4>
-                <p>{order.retailerName}</p>
-              </div>
-            </div>
-
-            <div className="ot-info-list">
-              <div className="ot-info-row">
-                <span>Business Address</span>
-                <strong>{order.address}</strong>
-              </div>
-
-              <div className="ot-info-row">
-                <span>GST Registration</span>
-                <strong>{order.gst || "Not provided"}</strong>
-              </div>
-
-              <div className="ot-info-row">
-                <span>Contact Number</span>
-                <strong>{order.contact}</strong>
-              </div>
-
-              <div className="ot-info-row">
-                <span>Order Reference</span>
-                <strong>{order.orderId}</strong>
-              </div>
-            </div>
-
-            <div className="ot-requirement">
-              <span>PRODUCT / STOCK REQUIREMENT</span>
-              <p>{order.requirement}</p>
-              <div className="ot-quantity">
-                <span>Requested quantity</span>
-                <strong>{order.quantity} units</strong>
-              </div>
-            </div>
-
-            <div className="ot-notes">
-              <span>DELIVERY NOTES</span>
-              <p>{order.notes || "No additional instructions."}</p>
-            </div>
-          </div>
-
-          <div className="ot-panel ot-tracking-panel">
-            <div className="ot-panel-heading">
-              <div>
-                <span className="ot-eyebrow">ORDER LIFECYCLE</span>
-                <h3>Live Order Tracking</h3>
-              </div>
-              <span className="ot-live-badge">
-                <span className="ot-live-dot" />
-                DEMO STATUS
-              </span>
-            </div>
-
-            <div className="ot-tracking-id">
-              <div>
-                <span>TRACKING ID</span>
-                <h4>{order.orderId}</h4>
-              </div>
-              <div className="ot-truck">↗</div>
-            </div>
-
-            <div className="ot-progress-header">
-              <span>Delivery progress</span>
-              <strong>{Math.round(progress)}%</strong>
-            </div>
-
-            <div
-              className="ot-progress-track"
-              role="progressbar"
-              aria-valuenow={Math.round(progress)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div
-                className="ot-progress-fill"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-
-            <div className="ot-timeline">
-              {steps.map((step, index) => {
-                const active = index <= steps.indexOf(order.status);
-                const current = step === order.status;
-
-                return (
-                  <div
-                    className={`ot-timeline-step ${active ? "is-complete" : ""} ${
-                      current ? "is-current" : ""
-                    }`}
-                    key={step}
-                  >
-                    <div className="ot-step-rail">
-                      <div className="ot-step-dot">
-                        {active ? "✓" : String(index + 1).padStart(2, "0")}
-                      </div>
-                      {index !== steps.length - 1 && (
-                        <div className="ot-step-line">
-                          <span
-                            style={{
-                              height:
-                                index < steps.indexOf(order.status)
-                                  ? "100%"
-                                  : "0%",
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="ot-step-content">
-                      <h4>{step}</h4>
-                      <p>
-                        {step === "Order Placed" &&
-                          "Retailer requirement received"}
-                        {step === "Confirmed" &&
-                          "Order details confirmed"}
-                        {step === "Processing" &&
-                          "Stock preparation and packing"}
-                        {step === "Dispatched" &&
-                          "Shipment handed over for delivery"}
-                        {step === "Delivered" &&
-                          "Order delivered to the retailer"}
-                      </p>
-                    </div>
-
-                    {current && (
-                      <span className="ot-current-label">CURRENT</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="ot-delivery-box">
-              <span className="ot-delivery-icon">⌁</span>
-              <div>
-                <span>EXPECTED DELIVERY</span>
-                <h4>{order.expectedDelivery}</h4>
-              </div>
-            </div>
-
-            <div className="ot-status-demo">
-              <label htmlFor="ot-status">Update demo order status</label>
-              <select
-                id="ot-status"
-                value={order.status}
-                onChange={(e) =>
-                  setOrder({
-                    ...order,
-                    status: e.target.value as OrderStatus,
-                  })
-                }
-              >
-                {steps.map((step) => (
-                  <option value={step} key={step}>
-                    {step}
-                  </option>
-                ))}
-              </select>
-              <p>
-                Changing this selection animates the timeline. It does not
-                update a real shipment.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="ot-bottom-grid">
-          <div className="ot-panel ot-payment-panel">
-            <div className="ot-panel-heading">
-              <div>
-                <span className="ot-eyebrow">FINANCIAL OVERVIEW</span>
-                <h3>Payment & Outstanding</h3>
-              </div>
-              <span className={due > 0 ? "ot-payment-status" : "ot-verified"}>
-                {due > 0 ? "PAYMENT DUE" : "PAID"}
-              </span>
-            </div>
-
-            <div className="ot-payment-numbers">
-              <div>
-                <span>Total Amount</span>
-                <h3>{money(order.total)}</h3>
-              </div>
-              <div>
-                <span>Paid Amount</span>
-                <h3>{money(order.paid)}</h3>
-              </div>
-            </div>
-
-            <div className="ot-payment-due">
-              <span>Outstanding Balance</span>
-              <h2>{money(due)}</h2>
-              <p>
-                {due > 0
-                  ? "Balance remaining for this order"
-                  : "No outstanding payment"}
-              </p>
-            </div>
-
-            <div className="ot-payment-bar">
-              <span
-                style={{
-                  width: `${
-                    order.total > 0
-                      ? Math.min(100, (order.paid / order.total) * 100)
-                      : 0
-                  }%`,
-                }}
-              />
-            </div>
-
-            <div className="ot-payment-legend">
-              <span>
-                <i className="ot-paid-dot" /> Paid
-              </span>
-              <strong>
-                {order.total > 0
-                  ? Math.round((order.paid / order.total) * 100)
-                  : 0}
-                % received
-              </strong>
-            </div>
-          </div>
-
-          <div className="ot-panel ot-search-panel">
-            <span className="ot-eyebrow">QUICK LOOKUP</span>
-            <h3>Find an Order</h3>
-            <p>
-              Search the order reference available in this demo.
-            </p>
-
-            <form onSubmit={trackOrder} className="ot-search-form">
-              <label htmlFor="ot-search">Order / Tracking ID</label>
-              <input
-                id="ot-search"
-                value={trackingId}
-                onChange={(e) => setTrackingId(e.target.value)}
-                placeholder="e.g. DI-2026-001"
-              />
-              <button className="ot-primary-btn" type="submit">
-                Find Order →
-              </button>
-            </form>
-
-            <div className="ot-search-hint">
-              <span>i</span>
-              <p>
-                This demo searches the single order currently displayed.
-                Connect a backend to look up multiple retailers and orders.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {message && (
-          <div className="ot-message" role="status">
-            {message}
-          </div>
-        )}
-
-        <div className="ot-footer-note">
-          <span className="ot-live-dot" />
-          <p>
-            DISTRIBUTED INTELLIGENCE <span>•</span> RETAIL OPERATIONS
+        {error && (
+          <p className="tracking-message tracking-message-error" role="alert">
+            {error}
           </p>
-          <span>FRONTEND DEMO</span>
-        </div>
-      </div>
-    </section>
+        )}
+
+        {fetching && orders.length === 0 ? (
+          <p className="tracking-empty">Loading order history...</p>
+        ) : filteredOrders.length === 0 ? (
+          <p className="tracking-empty">No orders found.</p>
+        ) : (
+          <div className="tracking-table-wrapper">
+            <table className="tracking-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredOrders.map((order, index) => (
+                  <tr
+                    key={`${order.order_id}-${order.product_id}-${index}`}
+                  >
+                    <td>{order.order_id}</td>
+                    <td>{order.customer_name}</td>
+                    <td>{order.product_name}</td>
+                    <td>{order.quantity || "—"}</td>
+                    <td>{formatMoney(order.grand_total)}</td>
+                    <td>{formatDate(order.date)}</td>
+                    <td>
+                      <span className="tracking-status">{order.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <p className="tracking-footnote">
+          Order history refreshes automatically every 30 seconds. Newly submitted
+          orders appear immediately in this page.
+        </p>
+      </section>
+    </main>
   );
 }

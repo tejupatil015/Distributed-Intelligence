@@ -7,7 +7,7 @@ import {
   useGSAP,
   isReducedMotion,
 } from "../hooks/useMediaPreferences";
-import "./Dashboard";
+import "./Dashboard"
 import { revealLines } from "../hooks/useReveal";
 import { Arrow, Img, Marquee } from "../components/ui";
 

@@ -5,8 +5,8 @@ import { useSite } from "../context/SiteContext";
 import { useSectionMotion } from "../hooks/useReveal";
 
 import { CategoryHero } from "../sections/CategoryHero";
-import { Dashboard } from "../sections/Dashboard";
-import { OrderTracking } from "../sections/OrderTracking";
+import Dashboard from "../sections/Dashboard";
+import OrderTracking from "../sections/OrderTracking";
 import { Analytics } from "../sections/Analytics";
 import { IntelligenceFlow } from "../sections/IntelligenceFlow";
 import { Cta } from "../sections/Cta";
