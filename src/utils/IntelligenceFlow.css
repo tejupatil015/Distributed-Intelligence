@@ -1,0 +1,562 @@
+/* =========================================
+   INTELLIGENCE FLOW — MODERN OCR EXPERIENCE
+========================================= */
+
+.intelligence-section {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 110px 7%;
+  color: #29243d;
+  background:
+    radial-gradient(
+      circle at 8% 10%,
+      rgba(207, 192, 255, 0.5),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 95% 75%,
+      rgba(255, 197, 173, 0.48),
+      transparent 30%
+    ),
+    #faf8ff;
+}
+
+/* Decorative background shapes */
+
+.intelligence-section::before,
+.intelligence-section::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(2px);
+  animation: intelligence-float 9s ease-in-out infinite;
+}
+
+.intelligence-section::before {
+  width: 260px;
+  height: 260px;
+  top: 100px;
+  right: -100px;
+  background: rgba(184, 160, 255, 0.17);
+}
+
+.intelligence-section::after {
+  width: 200px;
+  height: 200px;
+  left: -80px;
+  bottom: 60px;
+  background: rgba(255, 178, 151, 0.2);
+  animation-delay: -4s;
+}
+
+/* =========================================
+   HEADING
+========================================= */
+
+.intelligence-heading {
+  position: relative;
+  max-width: 800px;
+  margin-bottom: 48px;
+}
+
+.intelligence-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 15px;
+  color: #7356c9;
+  background: rgba(221, 211, 255, 0.55);
+  border: 1px solid rgba(160, 137, 230, 0.3);
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.intelligence-heading > span::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8b6bea;
+  box-shadow: 0 0 0 4px rgba(139, 107, 234, 0.13);
+}
+
+.intelligence-heading h2 {
+  max-width: 760px;
+  margin: 22px 0 18px;
+  color: #29243d;
+  font-size: clamp(36px, 5.4vw, 68px);
+  font-weight: 800;
+  letter-spacing: -2.8px;
+  line-height: 1.04;
+}
+
+.intelligence-heading h2 span {
+  color: #8b6bea;
+  background: linear-gradient(110deg, #8060df, #e18d9c, #ed9e76);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.intelligence-heading p {
+  max-width: 650px;
+  color: #777187;
+  font-size: 16px;
+  line-height: 1.9;
+}
+
+/* =========================================
+   MAIN OCR LAYOUT
+   Add this wrapper around upload + result
+   if your JSX supports it.
+========================================= */
+
+.intelligence-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 25px;
+  align-items: stretch;
+}
+
+/* =========================================
+   UPLOAD CARD
+========================================= */
+
+.ocr-upload {
+  position: relative;
+  min-height: 340px;
+  padding: 35px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  text-align: center;
+  cursor: pointer;
+
+  background: rgba(255, 255, 255, 0.78);
+  border: 2px dashed #c7b7f6;
+  border-radius: 28px;
+
+  box-shadow:
+    0 15px 45px rgba(92, 70, 145, 0.07),
+    inset 0 0 0 6px rgba(226, 218, 255, 0.18);
+
+  transition:
+    border-color 0.35s ease,
+    background 0.35s ease,
+    box-shadow 0.35s ease,
+    transform 0.35s ease;
+}
+
+.ocr-upload::before {
+  content: "";
+  position: absolute;
+  top: -90px;
+  right: -70px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(211, 198, 255, 0.24);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.ocr-upload::after {
+  content: "";
+  position: absolute;
+  bottom: -100px;
+  left: -60px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: rgba(255, 205, 187, 0.25);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.ocr-upload:hover {
+  transform: translateY(-7px);
+  border-color: #9879ef;
+  background: #ffffff;
+  box-shadow: 0 25px 60px rgba(111, 82, 183, 0.15);
+}
+
+.ocr-upload:hover::before {
+  transform: scale(1.35) translate(-10px, 10px);
+}
+
+.ocr-upload:hover::after {
+  transform: scale(1.3) translate(10px, -10px);
+}
+
+/* Upload icon */
+
+.ocr-icon {
+  position: relative;
+  z-index: 1;
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+
+  color: #7959d7;
+  background: linear-gradient(145deg, #eee8ff, #f9e6f1);
+  border: 1px solid #e0d5ff;
+  border-radius: 25px;
+
+  font-size: 38px;
+  box-shadow: 0 12px 30px rgba(121, 89, 215, 0.12);
+
+  animation: ocr-icon-float 3.5s ease-in-out infinite;
+}
+
+.ocr-upload h3,
+.ocr-upload strong {
+  position: relative;
+  z-index: 1;
+  margin: 5px 0;
+  color: #302844;
+  font-size: 21px;
+  font-weight: 750;
+}
+
+.ocr-upload p {
+  position: relative;
+  z-index: 1;
+  max-width: 350px;
+  margin: 0;
+  color: #837b95;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.ocr-upload > span:not(.ocr-icon) {
+  position: relative;
+  z-index: 1;
+  color: #8a829b;
+  font-size: 13px;
+}
+
+/* File input */
+
+.ocr-upload input {
+  position: relative;
+  z-index: 2;
+  max-width: 260px;
+  margin-top: 10px;
+  padding: 10px;
+  color: #625777;
+  background: #f8f5ff;
+  border: 1px solid #e3dafa;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ocr-upload input::file-selector-button {
+  margin-right: 10px;
+  padding: 9px 13px;
+  color: #fff;
+  background: #8465dc;
+  border: none;
+  border-radius: 8px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.ocr-upload input::file-selector-button:hover {
+  background: #6747c0;
+}
+
+/* =========================================
+   OCR RESULT PANEL
+========================================= */
+
+.ocr-result {
+  position: relative;
+  min-width: 0;
+  margin-top: 24px;
+  padding: 30px;
+  overflow: hidden;
+
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e7dff7;
+  border-radius: 25px;
+
+  box-shadow: 0 18px 45px rgba(63, 45, 104, 0.07);
+
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.ocr-result:hover {
+  transform: translateY(-5px);
+  border-color: #c7b4fa;
+  box-shadow: 0 25px 55px rgba(90, 66, 150, 0.12);
+}
+
+.ocr-result h3 {
+  margin: 0 0 20px;
+  color: #302844;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+}
+
+.ocr-result p {
+  color: #716980;
+  font-size: 14px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ocr-result small {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding: 8px 12px;
+  color: #6e51c2;
+  background: #f0eaff;
+  border: 1px solid #e0d5ff;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.5px;
+}
+
+/* Result status dot */
+
+.ocr-result small::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8a6ae5;
+  box-shadow: 0 0 0 4px rgba(138, 106, 229, 0.12);
+}
+
+/* =========================================
+   OPTIONAL: OCR PROCESSING STATUS
+========================================= */
+
+.ocr-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 13px 15px;
+  color: #6b55b1;
+  background: #f1edff;
+  border: 1px solid #e2d9ff;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ocr-status::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #8c6be7;
+  animation: ocr-status-pulse 1.4s ease-in-out infinite;
+}
+
+/* =========================================
+   OPTIONAL: FEATURE CHIPS
+========================================= */
+
+.intelligence-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.intelligence-features span {
+  padding: 10px 14px;
+  color: #62547e;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e8e0f6;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 650;
+  transition: all 0.3s ease;
+}
+
+.intelligence-features span:hover {
+  color: #fff;
+  background: #8768df;
+  border-color: #8768df;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(135, 104, 223, 0.2);
+}
+
+/* =========================================
+   GSAP REVEAL STATES
+   Use these classes in your component
+========================================= */
+
+.intelligence-reveal,
+.intelligence-card-reveal {
+  will-change: transform, opacity;
+}
+
+.intelligence-reveal {
+  opacity: 0;
+  transform: translateY(35px);
+}
+
+.intelligence-card-reveal {
+  opacity: 0;
+  transform: translateY(25px) scale(0.97);
+}
+
+/* =========================================
+   KEYFRAME ANIMATIONS
+========================================= */
+
+@keyframes intelligence-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -20px, 0);
+  }
+}
+
+@keyframes ocr-icon-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-7px) rotate(-3deg);
+  }
+}
+
+@keyframes ocr-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(140, 107, 231, 0.25);
+  }
+
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 7px rgba(140, 107, 231, 0);
+  }
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+========================================= */
+
+@media (min-width: 1000px) {
+  .intelligence-workspace .ocr-result {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .intelligence-section {
+    padding: 85px 5%;
+  }
+
+  .intelligence-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .ocr-upload {
+    min-height: 300px;
+  }
+
+  .intelligence-heading h2 {
+    letter-spacing: -1.8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .intelligence-section {
+    padding: 65px 20px;
+  }
+
+  .intelligence-heading {
+    margin-bottom: 30px;
+  }
+
+  .intelligence-heading h2 {
+    font-size: clamp(34px, 10vw, 48px);
+    letter-spacing: -1.5px;
+  }
+
+  .intelligence-heading p {
+    font-size: 14px;
+  }
+
+  .ocr-upload {
+    min-height: 280px;
+    padding: 24px 16px;
+    border-radius: 22px;
+  }
+
+  .ocr-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 21px;
+    font-size: 32px;
+  }
+
+  .ocr-result {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  .ocr-result h3 {
+    font-size: 20px;
+  }
+
+  .intelligence-features {
+    gap: 8px;
+  }
+
+  .intelligence-features span {
+    font-size: 11px;
+  }
+}
+
+/* Accessibility: reduce motion when requested */
+
+@media (prefers-reduced-motion: reduce) {
+  .intelligence-section *,
+  .intelligence-section *::before,
+  .intelligence-section *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .intelligence-reveal,
+  .intelligence-card-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

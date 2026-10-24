@@ -1,0 +1,444 @@
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+.analytics-section {
+  --an-text: #342b4b;
+  --an-muted: #827991;
+  --an-purple: #9375e8;
+  --an-pink: #f29ab6;
+  --an-blue: #86cbed;
+  --an-border: rgba(143, 120, 196, 0.17);
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 95px 7%;
+  color: var(--an-text);
+  font-family: "DM Sans", sans-serif;
+  background:
+    radial-gradient(ellipse at 0% 0%, #eee5ff 0%, transparent 38%),
+    radial-gradient(ellipse at 100% 50%, #ffe8ed 0%, transparent 32%),
+    linear-gradient(135deg, #fcfaff 0%, #f6f5ff 50%, #fff9f7 100%);
+}
+
+.analytics-section *,
+.analytics-section *::before,
+.analytics-section *::after {
+  box-sizing: border-box;
+}
+
+.analytics-section::before,
+.analytics-section::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  filter: blur(85px);
+  opacity: 0.42;
+  pointer-events: none;
+  animation: an-float 10s ease-in-out infinite alternate;
+}
+
+.analytics-section::before {
+  top: 20%;
+  left: -200px;
+  background: #d6c5ff;
+}
+
+.analytics-section::after {
+  right: -190px;
+  bottom: 0;
+  background: #ffcbd9;
+  animation-delay: -4s;
+}
+
+/* Section heading */
+
+.analytics-heading {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto 48px 0;
+}
+
+.analytics-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #9275dc;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.8px;
+  text-transform: uppercase;
+}
+
+.analytics-heading > span::before {
+  content: "";
+  width: 27px;
+  height: 2px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #9275dc, #f29ab6);
+}
+
+.analytics-heading h2 {
+  margin: 20px 0 18px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(38px, 5.3vw, 68px);
+  font-weight: 600;
+  letter-spacing: -3px;
+  line-height: 1.06;
+  color: #342b4b;
+}
+
+.analytics-heading h2 span {
+  color: #9979e6;
+  background: linear-gradient(100deg, #8e72e4, #e992b4 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.analytics-heading p {
+  max-width: 610px;
+  margin: 0;
+  color: var(--an-muted);
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+/* Analytics cards */
+
+.analytics-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.analytics-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-width: 0;
+  padding: 29px 25px;
+  border: 1px solid var(--an-border);
+  border-radius: 23px;
+  background: rgba(255, 255, 255, 0.77);
+  box-shadow: 0 12px 35px rgba(100, 78, 145, 0.06);
+  backdrop-filter: blur(18px);
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.4s ease,
+    border-color 0.4s ease;
+}
+
+.analytics-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -65px;
+  right: -65px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: #eee5ff;
+  transition: transform 0.5s ease;
+}
+
+.analytics-card:nth-child(2)::before {
+  background: #ffe4ec;
+}
+
+.analytics-card:nth-child(3)::before {
+  background: #e0f3ff;
+}
+
+.analytics-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #9475e8, #f19bb9, #89ccec);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.analytics-card:hover {
+  transform: translateY(-9px);
+  border-color: rgba(151, 124, 216, 0.36);
+  box-shadow: 0 22px 45px rgba(100, 78, 145, 0.13);
+}
+
+.analytics-card:hover::before {
+  transform: scale(1.35);
+}
+
+.analytics-card:hover::after {
+  transform: scaleX(1);
+}
+
+.analytics-card > span {
+  position: relative;
+  z-index: 1;
+  display: block;
+  color: #857c9b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.analytics-card h3 {
+  position: relative;
+  z-index: 1;
+  margin: 24px 0 12px;
+  color: #3b3154;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(27px, 3vw, 38px);
+  font-weight: 700;
+  letter-spacing: -1.4px;
+}
+
+.analytics-card p {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #898198;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+/* Optional decorative card icon.
+   Add <div className="analytics-card-icon">↗</div>
+   inside a card if desired. */
+
+.analytics-card-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e8defc;
+  border-radius: 13px;
+  background: #f4efff;
+  color: #8e73df;
+  font-size: 18px;
+  transition: transform 0.35s ease;
+}
+
+.analytics-card:nth-child(2) .analytics-card-icon {
+  border-color: #ffe0e9;
+  background: #fff0f4;
+  color: #e38aa8;
+}
+
+.analytics-card:nth-child(3) .analytics-card-icon {
+  border-color: #d9effc;
+  background: #edf8ff;
+  color: #5ba8d4;
+}
+
+.analytics-card:hover .analytics-card-icon {
+  transform: rotate(-10deg) scale(1.08);
+}
+
+/* Forecast panel */
+
+.forecast-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 30px;
+  overflow: hidden;
+  margin-top: 24px;
+  padding: 35px;
+  border: 1px solid rgba(151, 124, 216, 0.2);
+  border-radius: 25px;
+  background:
+    radial-gradient(ellipse at 100% 0%, #eae2ff 0%, transparent 42%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.94), rgba(255, 246, 250, 0.92));
+  box-shadow: 0 14px 38px rgba(100, 78, 145, 0.07);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+
+.forecast-panel:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(100, 78, 145, 0.12);
+}
+
+.forecast-panel > div:first-child > span {
+  display: inline-block;
+  color: #9678df;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.forecast-panel h3 {
+  margin: 13px 0 12px;
+  color: #382e50;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(23px, 3vw, 34px);
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+
+.forecast-panel p {
+  max-width: 590px;
+  margin: 0;
+  color: #827991;
+  font-size: 13px;
+  line-height: 1.85;
+}
+
+.forecast-panel button {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 15px 23px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #9074e4, #b38ce9);
+  color: white;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 9px 22px rgba(146, 116, 228, 0.23);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.forecast-panel button::after {
+  content: " ↗";
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+.forecast-panel button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(146, 116, 228, 0.34);
+}
+
+.forecast-panel button:active {
+  transform: scale(0.97);
+}
+
+.forecast-panel button:focus-visible {
+  outline: 3px solid #d9c9ff;
+  outline-offset: 4px;
+}
+
+/* GSAP ScrollTrigger reveal states */
+
+.analytics-heading,
+.analytics-card,
+.forecast-panel {
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analytics-section *,
+  .analytics-section *::before,
+  .analytics-section *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Responsive */
+
+@media (max-width: 950px) {
+  .analytics-section {
+    padding: 75px 5%;
+  }
+
+  .analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analytics-card:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .forecast-panel {
+    padding: 28px;
+  }
+}
+
+@media (max-width: 650px) {
+  .analytics-section {
+    padding: 58px 18px;
+  }
+
+  .analytics-heading {
+    margin-bottom: 32px;
+  }
+
+  .analytics-heading h2 {
+    font-size: clamp(36px, 10vw, 50px);
+    letter-spacing: -2px;
+  }
+
+  .analytics-heading p {
+    font-size: 13px;
+  }
+
+  .analytics-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .analytics-card:nth-child(3) {
+    grid-column: auto;
+  }
+
+  .analytics-card {
+    padding: 24px 21px;
+    border-radius: 19px;
+  }
+
+  .analytics-card h3 {
+    margin-top: 19px;
+    font-size: 32px;
+  }
+
+  .forecast-panel {
+    grid-template-columns: 1fr;
+    gap: 23px;
+    margin-top: 17px;
+    padding: 25px 21px;
+    border-radius: 20px;
+  }
+
+  .forecast-panel button {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 380px) {
+  .analytics-section {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .analytics-heading > span {
+    font-size: 9px;
+    letter-spacing: 1.8px;
+  }
+
+  .analytics-card h3 {
+    font-size: 28px;
+  }
+}
