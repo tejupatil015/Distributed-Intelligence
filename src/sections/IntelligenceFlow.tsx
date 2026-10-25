@@ -1,7 +1,7 @@
 import { useRef, useState, useLayoutEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-
+import Tesseract from "tesseract.js";
 import "../utils/IntelligenceFlow.css";
 
 gsap.registerPlugin(ScrollTrigger);

@@ -20,8 +20,10 @@
     "mysql2": "^3.24.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "recharts": "^3.10.1",
     "split-type": "^0.3.4",
-    "tailwind-merge": "3.4.0"
+    "tailwind-merge": "3.4.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.17",
