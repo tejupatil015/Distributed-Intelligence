@@ -1,10 +1,13 @@
-import { useRef, useState, useLayoutEffect } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRef, useState } from "react";
+import {
+  gsap,
+  useGSAP,
+  isReducedMotion,
+} from "../hooks/useMediaPreferences";
 import Tesseract from "tesseract.js";
+import { Img } from "../components/ui";
+import { images } from "../data/images";
 import "../utils/IntelligenceFlow.css";
-
-gsap.registerPlugin(ScrollTrigger);
 
 export function IntelligenceFlow() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -16,48 +19,83 @@ export function IntelligenceFlow() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
 
-  useLayoutEffect(() => {
+  useGSAP(() => {
     const section = sectionRef.current;
     if (!section) return;
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
+    if (isReducedMotion()) {
+      gsap.set(
+        ".intelligence-reveal, .intelligence-card-reveal, .intelligence-image-reveal",
+        {
+        autoAlpha: 1,
+        clearProps: "transform,filter",
+        }
+      );
+      return;
+    }
+
+    const entrance = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: "top 78%",
+        once: true,
+      },
+    });
+
+    entrance
+      .fromTo(
         ".intelligence-reveal",
-        { opacity: 0, y: 45 },
+        { autoAlpha: 0, y: 42, filter: "blur(8px)" },
         {
-          opacity: 1,
+          autoAlpha: 1,
           y: 0,
-          duration: 0.9,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: section,
-            start: "top 80%",
-            once: true,
-          },
+          filter: "blur(0px)",
+          duration: 1.05,
+          ease: "power4.out",
         }
-      );
-
-      gsap.fromTo(
-        ".intelligence-card-reveal",
-        { opacity: 0, y: 35, scale: 0.97 },
+      )
+      .fromTo(
+        ".intelligence-image-reveal",
+        { autoAlpha: 0, x: 40, scale: 0.94, clipPath: "inset(0 0 0 12%)" },
         {
-          opacity: 1,
-          y: 0,
+          autoAlpha: 1,
+          x: 0,
           scale: 1,
-          duration: 0.8,
-          stagger: 0.18,
+          clipPath: "inset(0 0 0 0%)",
+          duration: 1,
           ease: "power3.out",
-          scrollTrigger: {
-            trigger: section,
-            start: "top 72%",
-            once: true,
-          },
-        }
+        },
+        "-=0.72"
+      )
+      .fromTo(
+        ".ocr-upload",
+        { autoAlpha: 0, x: -58, y: 28, rotate: -2, scale: 0.96 },
+        {
+          autoAlpha: 1,
+          x: 0,
+          y: 0,
+          rotate: 0,
+          scale: 1,
+          duration: 1.05,
+          ease: "power3.out",
+        },
+        "-=0.35"
+      )
+      .fromTo(
+        ".ocr-result",
+        { autoAlpha: 0, x: 58, y: 38, rotate: 2, scale: 0.96 },
+        {
+          autoAlpha: 1,
+          x: 0,
+          y: 0,
+          rotate: 0,
+          scale: 1,
+          duration: 1.1,
+          ease: "power3.out",
+        },
+        "-=0.78"
       );
-    }, section);
-
-    return () => ctx.revert();
-  }, []);
+  }, { scope: sectionRef });
 
   const handleFileChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -166,20 +204,33 @@ export function IntelligenceFlow() {
       className="intelligence-section"
       ref={sectionRef}
     >
-      <div className="intelligence-heading intelligence-reveal">
-        <span>INTELLIGENCE FLOW</span>
+      <div className="intelligence-intro">
+        <div className="intelligence-heading intelligence-reveal">
+          <span>INTELLIGENCE FLOW</span>
 
-        <h2>
-          Turn documents into{" "}
-          <span>intelligence.</span>
-        </h2>
+          <h2>
+            Turn documents into{" "}
+            <span>intelligence.</span>
+          </h2>
 
-        <p>
-          Transform document images into readable digital text with
-          intelligent OCR processing. Upload an image, extract its
-          contents, and prepare your document data for further
-          analysis.
-        </p>
+          <p>
+            Transform document images into readable digital text with
+            intelligent OCR processing. Upload an image, extract its
+            contents, and prepare your document data for further
+            analysis.
+          </p>
+        </div>
+
+        <figure className="intelligence-feature-image intelligence-image-reveal">
+          <Img
+            src={images.automatedIntelligence}
+            alt="A person working with digital technology on a laptop"
+          />
+          <figcaption>
+            <span>FROM IMAGE TO INSIGHT</span>
+            <strong>Every detail, ready to be understood.</strong>
+          </figcaption>
+        </figure>
       </div>
 
       <div className="intelligence-workspace">

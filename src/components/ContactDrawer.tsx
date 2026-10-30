@@ -121,7 +121,7 @@ export function ContactDrawer() {
             <p className="muted">
               Our senior advisor for{" "}
               {categories.find((c) => c.slug === selectedSlug)?.name ??
-                "Solenne"}{" "}
+                "Nemo"}{" "}
               will write to <strong>{email}</strong> within one business day with
               a private dossier.
             </p>

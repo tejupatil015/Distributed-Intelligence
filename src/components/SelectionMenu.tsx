@@ -142,7 +142,7 @@ export function SelectionMenu() {
             </button>
           </nav>
           <span className="muted">
-            Solenne Estates — homes with a sense of place
+            Nemo — homes with a sense of place
           </span>
         </div>
       </div>

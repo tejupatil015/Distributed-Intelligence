@@ -59,7 +59,7 @@ export function TLink({
     e.stopPropagation();
     onNavigate?.();
     const cat = bySlug(to.replace("/", ""));
-    navigateTo(to, cat?.color ?? "#1E2754", cat?.name ?? "Solenne");
+    navigateTo(to, cat?.color ?? "#1E2754", cat?.name ?? "Nemo");
   };
 
   return (

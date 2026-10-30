@@ -9,12 +9,12 @@ export function Nav() {
       <TLink
         to="/"
         className="nav__logo"
-        aria-label="Solenne Estates — home"
+        aria-label="Nemo — home"
         cursor="Home"
         onNavigate={closeMenu}
       >
         <Mark />
-        <span>Solenne</span>
+        <span>Nemo</span>
       </TLink>
       <nav className="nav__links" aria-label="Secondary">
         <button

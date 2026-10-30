@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  gsap,
+  useGSAP,
+  isReducedMotion,
+} from "../hooks/useMediaPreferences";
+import {
+  OrderForm as OrderFormView,
+  type OrderFormValues,
+  type OrderProduct,
+} from "./OrderForm";
 import "../utils/OrderTracking.css";
 
 const ORDER_WEBHOOK_URL =
@@ -8,19 +18,6 @@ const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQqbbS4F4muN87mveSo2r3069O-dz-Kfzf_9KTat7w1sA2z148aTjmcQLOYp4ALPyGfnnkZpo0JxGE6/pub?output=csv";
 
 const LOCAL_STORAGE_KEY = "di_order_history";
-
-type Product = {
-  id: string;
-  name: string;
-  price: number;
-};
-
-type OrderForm = {
-  customer_name: string;
-  customer_email: string;
-  phone: string;
-  address: string;
-};
 
 type OrderRecord = {
   order_id: string;
@@ -42,12 +39,12 @@ type OrderRecord = {
   Replace the product names/prices below with your actual product catalogue.
   Keep the IDs consistent with the products used in your n8n workflow.
 */
-const PRODUCTS: Product[] = [
+const PRODUCTS: OrderProduct[] = [
   { id: "P001", name: "Product P001", price: 10 },
   { id: "P002", name: "Product P002", price: 60 },
 ];
 
-const EMPTY_FORM: OrderForm = {
+const EMPTY_FORM: OrderFormValues = {
   customer_name: "",
   customer_email: "",
   phone: "",
@@ -292,7 +289,8 @@ function deduplicateOrders(orders: OrderRecord[]): OrderRecord[] {
 }
 
 export default function OrderTracking() {
-  const [form, setForm] = useState<OrderForm>(EMPTY_FORM);
+  const pageRef = useRef<HTMLElement>(null);
+  const [form, setForm] = useState<OrderFormValues>(EMPTY_FORM);
   const [selectedProductId, setSelectedProductId] = useState(PRODUCTS[0].id);
   const [qty, setQty] = useState(1);
 
@@ -554,16 +552,63 @@ export default function OrderTracking() {
 
   const latestOrder = sortedOrders[0];
 
+  useGSAP(
+    () => {
+      if (isReducedMotion()) return;
+
+      const page = pageRef.current;
+      if (!page) return;
+
+      gsap.utils.toArray<HTMLElement>(".order-scroll-step", page).forEach((step) => {
+        gsap.fromTo(
+          step,
+          { autoAlpha: 0, y: 34 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.8,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: step,
+              start: "top 88%",
+              once: true,
+            },
+          }
+        );
+      });
+
+      gsap.utils.toArray<HTMLElement>(".tracking-form-step", page).forEach((step) => {
+        gsap.fromTo(
+          step,
+          { autoAlpha: 0, y: 24, scale: 0.985 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.7,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: step,
+              start: "top 90%",
+              once: true,
+            },
+          }
+        );
+      });
+    },
+    { scope: pageRef }
+  );
+
   return (
-    <main className="order-section order-tracking-page">
-      <header className="order-heading">
+    <main className="order-section order-tracking-page" ref={pageRef}>
+      <header className="order-heading order-scroll-step">
         <p className="order-eyebrow">DISTRIBUTED INTELLIGENCE</p>
         <h1>Order Tracking</h1>
         <p>Place a new order and track your recent orders in one place.</p>
       </header>
 
       {/* SUMMARY */}
-      <section className="order-tracking-stats">
+      <section className="order-tracking-stats order-scroll-step">
         <article className="tracking-stat-card">
           <span>Total Orders</span>
           <strong>{fetching ? "…" : totalOrders}</strong>
@@ -589,7 +634,7 @@ export default function OrderTracking() {
 
       {/* LATEST ORDER */}
       {latestOrder && (
-        <section className="tracking-panel tracking-latest-panel">
+        <section className="tracking-panel tracking-latest-panel order-scroll-step">
           <div className="tracking-panel-heading">
             <div>
               <p className="order-eyebrow">MOST RECENT</p>
@@ -628,110 +673,36 @@ export default function OrderTracking() {
       )}
 
       {/* PLACE ORDER FORM */}
-      <section className="tracking-panel">
+      <section className="tracking-panel tracking-compose-panel order-scroll-step">
         <div className="tracking-panel-heading">
           <div>
             <p className="order-eyebrow">NEW REQUEST</p>
             <h2>Place an Order</h2>
+            <p className="tracking-form-intro">
+              Add your details, delivery address, and items to get started.
+            </p>
           </div>
         </div>
 
-        <form className="tracking-form" onSubmit={handleSubmit}>
-          <label htmlFor="customer_name">Customer Name *</label>
-          <input
-            id="customer_name"
-            name="customer_name"
-            type="text"
-            placeholder="Enter customer name"
-            value={form.customer_name}
-            onChange={handleFormChange}
-            required
-          />
-
-          <label htmlFor="customer_email">Email</label>
-          <input
-            id="customer_email"
-            name="customer_email"
-            type="email"
-            placeholder="Enter email address"
-            value={form.customer_email}
-            onChange={handleFormChange}
-          />
-
-          <label htmlFor="phone">Phone Number *</label>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            placeholder="Enter phone number"
-            value={form.phone}
-            onChange={handleFormChange}
-            required
-          />
-
-          <label htmlFor="address">Delivery Address *</label>
-          <textarea
-            id="address"
-            name="address"
-            placeholder="Enter complete delivery address"
-            value={form.address}
-            onChange={handleFormChange}
-            rows={3}
-            required
-          />
-
-          <label htmlFor="product">Select Product *</label>
-          <select
-            id="product"
-            value={selectedProductId}
-            onChange={(event) => setSelectedProductId(event.target.value)}
-          >
-            {PRODUCTS.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name} — {formatMoney(product.price)}
-              </option>
-            ))}
-          </select>
-
-          <label htmlFor="quantity">Quantity *</label>
-          <input
-            id="quantity"
-            type="number"
-            min={1}
-            step={1}
-            value={qty}
-            onChange={(event) => setQty(Math.max(1, Number(event.target.value) || 1))}
-            required
-          />
-
-          <div className="tracking-order-total">
-            <span>Estimated Total</span>
-            <strong>{formatMoney(estimatedTotal)}</strong>
-          </div>
-
-          {error && (
-            <p className="tracking-message tracking-message-error" role="alert">
-              {error}
-            </p>
-          )}
-
-          {result && (
-            <p
-              className="tracking-message tracking-message-success"
-              role="status"
-            >
-              {result}
-            </p>
-          )}
-
-          <button type="submit" disabled={loading} className="tracking-submit">
-            {loading ? "Submitting Order..." : "Place Order"}
-          </button>
-        </form>
+        <OrderFormView
+          form={form}
+          products={PRODUCTS}
+          selectedProductId={selectedProductId}
+          quantity={qty}
+          estimatedTotal={estimatedTotal}
+          loading={loading}
+          error={error}
+          result={result}
+          formatMoney={formatMoney}
+          onChange={handleFormChange}
+          onProductChange={setSelectedProductId}
+          onQuantityChange={setQty}
+          onSubmit={handleSubmit}
+        />
       </section>
 
       {/* ORDER HISTORY */}
-      <section className="tracking-panel">
+      <section className="tracking-panel order-scroll-step">
         <div className="tracking-panel-heading">
           <div>
             <p className="order-eyebrow">ORDER RECORDS</p>

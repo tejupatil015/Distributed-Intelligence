@@ -209,7 +209,7 @@ export function Preloader() {
 
   return (
     <div className="loader" ref={rootRef} aria-hidden="true">
-      <span className="loader__brand">Solenne Estates</span>
+      <span className="loader__brand">Nemo</span>
       <div>
         <div className="loader__count">{String(count).padStart(2, "0")}</div>
         <div className="loader__bar">
@@ -257,9 +257,9 @@ export function Footer() {
           <span>Mon–Fri, 9–18</span>
         </div>
       </div>
-      <Marquee text="Solenne" accent="estates" dur={50} className="footer__mark" />
+      <Marquee text="Nemo" dur={50} className="footer__mark" />
       <div className="footer__base">
-        <span>© 2026 Solenne Estates — a fictional brand</span>
+        <span>© 2026 Nemo</span>
         <span>Photography: Pexels (placeholders)</span>
       </div>
     </footer>

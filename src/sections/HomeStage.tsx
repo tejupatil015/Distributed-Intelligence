@@ -345,16 +345,16 @@ export function HomeStage() {
     <section
       className="hstage"
       ref={stageRef}
-      aria-label="Solenne Estates — our selection"
+      aria-label="Nemo — our selection"
       onClick={handleStageClick}
     >
       <div className="hhero">
         <div className="hhero__media ph">
-          {/* SWAP: home hero photo → images.ts → homeHero */}
+          {/* Full-bleed image behind the entire hero section. */}
           <div className="hhero__img">
             <Img
-              src={images.homeHero}
-              alt="Residential towers at twilight"
+              src={images.seaWide1}
+              alt="Coastal landscape at the water's edge"
               eager
             />
           </div>

@@ -1,6 +1,11 @@
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
+import {
+  gsap,
+  useGSAP,
+  isReducedMotion,
+} from "../hooks/useMediaPreferences";
 
 import {
   ResponsiveContainer,
@@ -89,6 +94,7 @@ function formatDate(dateString: string, index: number, startDate: string) {
 }
 
 export function Analytics() {
+  const sectionRef = useRef<HTMLElement>(null);
   const [area, setArea] = useState("Pune");
   const [category, setCategory] = useState("Biscuits & Snacks");
   const [scalingPrice, setScalingPrice] = useState("10");
@@ -115,6 +121,84 @@ export function Analytics() {
     revenue: "₹ --",
     stock: "--",
   });
+
+  useGSAP(
+    () => {
+      const section = sectionRef.current;
+      if (!section) return;
+
+      if (isReducedMotion()) {
+        gsap.set(
+          ".analytics-heading, .forecast-panel, .forecast-field",
+          { clearProps: "all" }
+        );
+        return;
+      }
+
+      const intro = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top 78%",
+          once: true,
+        },
+      });
+
+      intro
+        .fromTo(
+          ".analytics-heading > span",
+          { autoAlpha: 0, x: -24 },
+          { autoAlpha: 1, x: 0, duration: 0.55, ease: "power2.out" }
+        )
+        .fromTo(
+          ".analytics-heading h2",
+          { autoAlpha: 0, y: 38, clipPath: "inset(0 0 100% 0)" },
+          {
+            autoAlpha: 1,
+            y: 0,
+            clipPath: "inset(0 0 0% 0)",
+            duration: 1.05,
+            ease: "power4.out",
+          },
+          "-=0.2"
+        )
+        .fromTo(
+          ".analytics-heading p",
+          { autoAlpha: 0, y: 20 },
+          { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" },
+          "-=0.55"
+        )
+        .fromTo(
+          ".forecast-panel",
+          { autoAlpha: 0, y: 52, scale: 0.975 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.95,
+            ease: "power3.out",
+          },
+          "-=0.15"
+        );
+
+      gsap.fromTo(
+        ".forecast-field",
+        { autoAlpha: 0, y: 18 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.55,
+          stagger: 0.075,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: ".forecast-panel",
+            start: "top 72%",
+            once: true,
+          },
+        }
+      );
+    },
+    { scope: sectionRef }
+  );
 
   const generateForecast = async (
     event: FormEvent<HTMLFormElement>
@@ -270,7 +354,7 @@ export function Analytics() {
       : 0;
 
   return (
-    <section className="analytics-section">
+    <section className="analytics-section" ref={sectionRef}>
       <div className="analytics-heading">
         <span>INTELLIGENCE / FORECASTING</span>
         <h2>Predict demand. Plan smarter.</h2>
@@ -433,12 +517,12 @@ export function Analytics() {
                   >
                     <stop
                       offset="0%"
-                      stopColor="#8b5cf6"
+                      stopColor="#8178cf"
                       stopOpacity={0.35}
                     />
                     <stop
                       offset="100%"
-                      stopColor="#8b5cf6"
+                      stopColor="#8178cf"
                       stopOpacity={0.02}
                     />
                   </linearGradient>
@@ -447,19 +531,19 @@ export function Analytics() {
                 <CartesianGrid
                   strokeDasharray="4 4"
                   vertical={false}
-                  stroke="#e7e5ef"
+                  stroke="#e6e4ee"
                 />
 
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#77758a", fontSize: 11 }}
+                  tick={{ fill: "#666e93", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                   minTickGap={20}
                 />
 
                 <YAxis
-                  tick={{ fill: "#77758a", fontSize: 11 }}
+                  tick={{ fill: "#666e93", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                   width={45}
@@ -468,7 +552,7 @@ export function Analytics() {
                 <Tooltip
                   contentStyle={{
                     borderRadius: 12,
-                    border: "1px solid #e7e5ef",
+                    border: "1px solid #e6e4ee",
                   }}
                   formatter={(value) => [
                     `${value ?? 0} units`,
@@ -480,7 +564,7 @@ export function Analytics() {
                   type="monotone"
                   dataKey="demand"
                   name="Predicted demand"
-                  stroke="#8b5cf6"
+                  stroke="#8178cf"
                   strokeWidth={3}
                   fill="url(#demandGradient)"
                   activeDot={{ r: 5 }}

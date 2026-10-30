@@ -1,0 +1,93 @@
+
+/* Distributed Intelligence AI Assistant */
+
+#n8n-chat {
+  --chat--color-primary: #7357f6;
+  --chat--color-primary-shade-50: #6245e7;
+  --chat--color-primary-shade-100: #5235d5;
+
+  --chat--color-secondary: #12b8a6;
+  --chat--color-secondary-shade-50: #0ea795;
+
+  --chat--color-white: #ffffff;
+  --chat--color-light: #f7f8fc;
+  --chat--color-light-shade-50: #eef0f7;
+  --chat--color-light-shade-100: #dfe3ee;
+
+  --chat--color-medium: #9aa3b8;
+  --chat--color-dark: #17182b;
+  --chat--color-disabled: #a1a1aa;
+  --chat--color-typing: #6b7280;
+
+  --chat--spacing: 1rem;
+  --chat--border-radius: 16px;
+  --chat--transition-duration: 0.25s;
+
+  --chat--window--width: 390px;
+  --chat--window--height: 600px;
+
+  --chat--header--background: #17182b;
+  --chat--header--color: #ffffff;
+  --chat--header--padding: 20px;
+
+  --chat--message--font-size: 14px;
+  --chat--message--padding: 12px 15px;
+  --chat--message--border-radius: 14px;
+
+  --chat--message--bot--background: #f0efff;
+  --chat--message--bot--color: #24243c;
+
+  --chat--message--user--background: #7357f6;
+  --chat--message--user--color: #ffffff;
+
+  --chat--textarea--height: 52px;
+}
+
+/* Keep the widget above page content */
+#n8n-chat {
+  position: relative;
+  z-index: 9999;
+}
+
+@media (max-width: 480px) {
+  #n8n-chat {
+    --chat--window--width: calc(100vw - 24px);
+    --chat--window--height: 70dvh;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

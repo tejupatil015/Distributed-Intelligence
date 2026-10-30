@@ -1,15 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  gsap,
+  useGSAP,
+  isReducedMotion,
+} from "../hooks/useMediaPreferences";
 import "../utils/Dashboard.css";
 
 const API = "http://127.0.0.1:5000";
 
-const formatNumber = (value) =>
+type DashboardData = {
+  total_locations: number;
+  total_products: number;
+  total_distributed_stock: number;
+  pending_transfers: number;
+  completed_transfers: number;
+};
+
+type InventoryAnalytics = {
+  totalInventory: number;
+  blockInventory: number | null;
+  manufacturingInventory: number | null;
+};
+
+type LocationStock = {
+  location_id: string | number;
+  location_name: string;
+  total_stock: number;
+};
+
+type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+};
+
+const formatNumber = (value: number | string | null | undefined) =>
   Number(value ?? 0).toLocaleString("en-IN");
 
 export default function DistributionDashboard() {
-  const [dashboard, setDashboard] = useState(null);
-  const [analytics, setAnalytics] = useState(null);
-  const [locations, setLocations] = useState([]);
+  const dashboardRef = useRef<HTMLElement>(null);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [analytics, setAnalytics] = useState<InventoryAnalytics | null>(null);
+  const [locations, setLocations] = useState<LocationStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -34,9 +65,9 @@ export default function DistributionDashboard() {
 
       const [dashboardResult, analyticsResult, locationResult] =
         await Promise.all([
-          dashboardResponse.json(),
-          analyticsResponse.json(),
-          locationResponse.json(),
+          dashboardResponse.json() as Promise<ApiResponse<DashboardData>>,
+          analyticsResponse.json() as Promise<ApiResponse<InventoryAnalytics>>,
+          locationResponse.json() as Promise<ApiResponse<LocationStock[]>>,
         ]);
 
       if (
@@ -52,7 +83,7 @@ export default function DistributionDashboard() {
       setLocations(locationResult.data);
     } catch (err) {
       setError(
-        `${err.message} Check that the backend and MySQL are running.`
+        `${err instanceof Error ? err.message : "Unexpected dashboard error."} Check that the backend and MySQL are running.`
       );
     } finally {
       setLoading(false);
@@ -65,6 +96,48 @@ export default function DistributionDashboard() {
     const interval = setInterval(loadDashboard, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useGSAP(
+    () => {
+      if (loading || isReducedMotion()) return;
+
+      const entrance = gsap.timeline({
+        defaults: { ease: "power3.out" },
+      });
+
+      entrance
+        .fromTo(
+          ".di-topbar",
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 0.75 }
+        )
+        .fromTo(
+          ".di-section-heading",
+          { autoAlpha: 0, y: 18 },
+          { autoAlpha: 1, y: 0, duration: 0.55 },
+          "-=0.38"
+        )
+        .fromTo(
+          ".di-kpi-card",
+          { autoAlpha: 0, y: 28, scale: 0.97 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.65,
+            stagger: 0.09,
+          },
+          "-=0.2"
+        )
+        .fromTo(
+          [".di-content-grid .di-panel", ".di-transfer-panel"],
+          { autoAlpha: 0, y: 32 },
+          { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.12 },
+          "-=0.18"
+        );
+    },
+    { scope: dashboardRef, dependencies: [loading], revertOnUpdate: true }
+  );
 
   const cards = dashboard
     ? [
@@ -116,7 +189,7 @@ export default function DistributionDashboard() {
   }
 
   return (
-    <main className="di-dashboard">
+    <main className="di-dashboard" ref={dashboardRef}>
       <aside className="di-sidebar">
         <a className="di-brand" href="#overview">
           <span className="di-brand-icon">D</span>
@@ -179,11 +252,10 @@ export default function DistributionDashboard() {
         </div>
 
         <section className="di-kpi-grid">
-          {cards.map((card, index) => (
+          {cards.map((card) => (
             <article
               className="di-kpi-card"
               key={card.label}
-              style={{ animationDelay: `${index * 70}ms` }}
             >
               <div className={`di-kpi-icon ${card.color}`}>
                 {card.icon}

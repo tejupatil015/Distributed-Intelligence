@@ -38,7 +38,7 @@ export function CategoryPage({ cat }: { cat: Category }) {
 
       <div ref={bodyRef} className="category-body">
         <div key={cat.slug} className="category-content">
-          {isDashboard && <Dashboard cat={cat} />}
+          {isDashboard && <Dashboard />}
 
           {isOrderTracking && <OrderTracking />}
 
@@ -49,7 +49,7 @@ export function CategoryPage({ cat }: { cat: Category }) {
           {!isDashboard &&
             !isOrderTracking &&
             !isAnalytics &&
-            !isIntelligenceFlow && <Dashboard cat={cat} />}
+            !isIntelligenceFlow && <Dashboard />}
 
           <Cta cat={cat} />
         </div>

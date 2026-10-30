@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { initEnhancements } from "./motion/enhance";
 import { SiteProvider, useSite } from "./context/SiteContext";
 import { Nav } from "./components/Nav";
 import { SelectionMenu } from "./components/SelectionMenu";
@@ -42,6 +43,8 @@ function AppShell() {
 }
 
 export default function App() {
+  useEffect(() => initEnhancements(), []);
+
   return (
     <SiteProvider>
       <AppShell />

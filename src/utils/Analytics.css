@@ -2,23 +2,23 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 
 .analytics-section {
-  --an-text: #342b4b;
-  --an-muted: #827991;
-  --an-purple: #9375e8;
-  --an-pink: #f29ab6;
-  --an-blue: #86cbed;
-  --an-border: rgba(143, 120, 196, 0.17);
+  --an-text: #1e2754;
+  --an-muted: #666e93;
+  --an-purple: #8178cf;
+  --an-pink: #aaa2ed;
+  --an-blue: #b7b2e7;
+  --an-border: rgba(30, 39, 84, 0.13);
 
   position: relative;
   isolation: isolate;
   overflow: hidden;
   padding: 95px 7%;
   color: var(--an-text);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-sans), "DM Sans", sans-serif;
   background:
-    radial-gradient(ellipse at 0% 0%, #eee5ff 0%, transparent 38%),
-    radial-gradient(ellipse at 100% 50%, #ffe8ed 0%, transparent 32%),
-    linear-gradient(135deg, #fcfaff 0%, #f6f5ff 50%, #fff9f7 100%);
+    radial-gradient(ellipse at 0% 0%, #e9e7f8 0%, transparent 38%),
+    radial-gradient(ellipse at 100% 50%, #eeecfa 0%, transparent 32%),
+    linear-gradient(135deg, #f6f4ef 0%, #f5f3fb 50%, #f6f4ef 100%);
 }
 
 .analytics-section *,
@@ -44,13 +44,13 @@
 .analytics-section::before {
   top: 20%;
   left: -200px;
-  background: #d6c5ff;
+  background: #bcb6e5;
 }
 
 .analytics-section::after {
   right: -190px;
   bottom: 0;
-  background: #ffcbd9;
+  background: #d1cdef;
   animation-delay: -4s;
 }
 
@@ -67,7 +67,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: #9275dc;
+  color: #8178cf;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 2.8px;
@@ -79,22 +79,22 @@
   width: 27px;
   height: 2px;
   border-radius: 3px;
-  background: linear-gradient(90deg, #9275dc, #f29ab6);
+  background: linear-gradient(90deg, #1e2754, #aaa2ed);
 }
 
 .analytics-heading h2 {
   margin: 20px 0 18px;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-display), "Space Grotesk", Georgia, serif;
   font-size: clamp(38px, 5.3vw, 68px);
   font-weight: 600;
   letter-spacing: -3px;
   line-height: 1.06;
-  color: #342b4b;
+  color: #1e2754;
 }
 
 .analytics-heading h2 span {
-  color: #9979e6;
-  background: linear-gradient(100deg, #8e72e4, #e992b4 85%);
+  color: #8178cf;
+  background: linear-gradient(100deg, #1e2754, #8178cf 85%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -144,16 +144,16 @@
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: #eee5ff;
+  background: #eeecfa;
   transition: transform 0.5s ease;
 }
 
 .analytics-card:nth-child(2)::before {
-  background: #ffe4ec;
+  background: #e6e3f7;
 }
 
 .analytics-card:nth-child(3)::before {
-  background: #e0f3ff;
+  background: #d9d7f0;
 }
 
 .analytics-card::after {
@@ -163,7 +163,7 @@
   left: 0;
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, #9475e8, #f19bb9, #89ccec);
+  background: linear-gradient(90deg, #1e2754, #8178cf, #aaa2ed);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.4s ease;
@@ -187,7 +187,7 @@
   position: relative;
   z-index: 1;
   display: block;
-  color: #857c9b;
+  color: #666e93;
   font-size: 12px;
   font-weight: 600;
 }
@@ -196,8 +196,8 @@
   position: relative;
   z-index: 1;
   margin: 24px 0 12px;
-  color: #3b3154;
-  font-family: "Space Grotesk", sans-serif;
+  color: #1e2754;
+  font-family: var(--font-display), "Space Grotesk", Georgia, serif;
   font-size: clamp(27px, 3vw, 38px);
   font-weight: 700;
   letter-spacing: -1.4px;
@@ -207,7 +207,7 @@
   position: relative;
   z-index: 1;
   margin: 0;
-  color: #898198;
+  color: #666e93;
   font-size: 12px;
   line-height: 1.8;
 }
@@ -462,7 +462,7 @@
 
 .forecast-form-heading > span,
 .forecast-chart-heading > div > span {
-  color: #8b5cf6;
+  color: #8178cf;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -521,8 +521,8 @@
 
 .forecast-field input:focus,
 .forecast-field select:focus {
-  border-color: #9875f7;
-  box-shadow: 0 0 0 3px #8b5cf619;
+  border-color: #8178cf;
+  box-shadow: 0 0 0 3px rgba(129, 120, 207, 0.16);
 }
 
 .forecast-submit {
@@ -545,7 +545,7 @@
 
 .forecast-submit:hover {
   transform: translateY(-2px);
-  box-shadow: 0 9px 22px #8b5cf635;
+  box-shadow: 0 9px 22px rgba(30, 39, 84, 0.2);
 }
 
 .forecast-submit span {
@@ -593,7 +593,7 @@
   height: 8px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: #8178cf;
 }
 
 .forecast-chart {
@@ -663,4 +663,96 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* Align remaining forecast controls and chart details with the site palette. */
+.analytics-card:nth-child(2)::before,
+.analytics-card:nth-child(3)::before,
+.analytics-card:nth-child(2) .analytics-card-icon,
+.analytics-card:nth-child(3) .analytics-card-icon {
+  border-color: #dfdcf3;
+  background: #eeecfa;
+  color: #625fa5;
+}
+
+.forecast-panel {
+  border-color: rgba(30, 39, 84, 0.14);
+  background:
+    radial-gradient(ellipse at 100% 0%, #e8e6f7 0%, transparent 42%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(246, 244, 239, 0.94));
+  box-shadow: 0 14px 38px rgba(30, 39, 84, 0.07);
+}
+
+.forecast-panel:hover {
+  box-shadow: 0 22px 48px rgba(30, 39, 84, 0.12);
+}
+
+.forecast-panel > div:first-child > span,
+.forecast-form-heading > span,
+.forecast-chart-heading > div > span {
+  color: #8178cf;
+}
+
+.forecast-panel h3,
+.forecast-form-heading h3,
+.forecast-chart-heading h3 {
+  color: #1e2754;
+  font-family: var(--font-display), "Space Grotesk", Georgia, serif;
+}
+
+.forecast-panel p,
+.forecast-form-heading p,
+.forecast-chart-heading p {
+  color: #666e93;
+}
+
+.forecast-panel button,
+.forecast-submit {
+  background: linear-gradient(110deg, #1e2754, #625fa5);
+  box-shadow: 0 9px 22px rgba(30, 39, 84, 0.2);
+}
+
+.forecast-panel button:hover,
+.forecast-submit:hover {
+  box-shadow: 0 14px 30px rgba(30, 39, 84, 0.26);
+}
+
+.forecast-field label {
+  color: #30395f;
+}
+
+.forecast-field input,
+.forecast-field select {
+  border-color: #e1e0ec;
+  color: #1e2754;
+}
+
+.forecast-field input:focus,
+.forecast-field select:focus {
+  border-color: #8178cf;
+  box-shadow: 0 0 0 3px rgba(129, 120, 207, 0.16);
+}
+
+.forecast-chart-panel {
+  border-color: #e6e4ee;
+  box-shadow: 0 12px 36px rgba(30, 39, 84, 0.06);
+}
+
+.forecast-chart-badge {
+  border-color: #dfdcf3;
+  background: #f2f0fb;
+  color: #4d4d89;
+}
+
+.forecast-legend-dot {
+  background: #8178cf;
+}
+
+.forecast-chart-footer {
+  border-top-color: #eeedf4;
+  color: #666e93;
+}
+
+.forecast-chart-footer strong {
+  color: #1e2754;
 }
